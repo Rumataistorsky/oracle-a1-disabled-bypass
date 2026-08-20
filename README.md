@@ -15,6 +15,15 @@ If you're here because your instance says *"is disabled and will not accept any
 action requests. Please contact customer support to reenable"* — jump to
 [The bypass](#the-bypass).
 
+## What's in this repo
+
+| File | Purpose |
+|---|---|
+| [`validate_user.py`](./validate_user.py) | check which SR problem types Oracle will accept from your tenancy |
+| [`list_taxonomy.py`](./list_taxonomy.py) | print the category / issue-type keys valid for your tenancy |
+| [`create_sr.py`](./create_sr.py) | file the ACCOUNT-type Service Request (dry run by default) |
+| [`manage_sr.py`](./manage_sr.py) | list, comment on, and close SRs — the console can't |
+
 ## What actually happened
 
 1. Oracle reduced the tenancy-wide Always Free Ampere A1 allocation from
@@ -105,6 +114,40 @@ disable flag on my account" is legitimately an account request, not a technical 
   identifier used elsewhere in OCI). Toronto is `YYZ`. If you're not sure, check your
   tenancy details page in the console, or ask Oracle chat support.
 
+### Step 0 — verify this applies to you, on your own tenancy
+
+Don't take the table above on faith, and don't reuse our taxonomy IDs. Two small
+scripts in this repo check both against your own account:
+
+```bash
+python3 validate_user.py     # which problem types will Oracle accept from you?
+python3 list_taxonomy.py     # the category / issue-type keys valid for YOUR tenancy
+```
+
+`validate_user.py` output on the affected tenancy looked like this:
+
+```
+TECH    -> ERROR 403 SUPPORT_ACCOUNT_NOT_FOUND  MOS validation failure. Support account does not exists.
+ACCOUNT -> 200 { "is_valid_user": true }
+LIMIT   -> 200 { "is_valid_user": true }
+```
+
+If `ACCOUNT` comes back `403` for you too, this bypass is closed on your tenancy and
+nothing below will help — say so in an issue, it's a useful data point.
+
+`list_taxonomy.py` prints the keys live, which matters because the IDs hard-coded in
+`create_sr.py` are a snapshot Oracle can change without notice. Ours printed:
+
+```
+CAT   b28b6f38   Account
+  ISSUE 9229c1cc   My Account and My Services Access      <- what we used
+  ISSUE ab27f7d5   Order Re-Provisioning
+  ISSUE d8f38038   Order Provisioning and Account Creation
+CAT   239f7536   Billing
+CAT   52b975c0   Administration
+CAT   b379dbdf   Governance
+```
+
 ### Filing the SR
 
 Edit [`create_sr.py`](./create_sr.py) — fill in your tenancy details, the instance
@@ -132,6 +175,55 @@ Notes from filing our own SR this way:
   `9229c1cc` for "My Account and My Services Access") worked for exactly this
   scenario at the time of writing — Oracle can change these without notice, so treat
   them as a starting point, not a permanent contract.
+
+### Errors you will hit, and what they actually mean
+
+Every one of these came back with a message that points nowhere near the real cause.
+
+| What you see | Real cause | Fix |
+|---|---|---|
+| `400 Unable to process JSON` | `region` on `CreateResourceDetails` is the region *name* | use the 3-letter code — `YYZ`, not `ca-toronto-1` |
+| `TypeError: Field ticket.resource_list[*] ... expected CreateResourceDetails but was CreateAccountItemDetails` | the item has to be wrapped | `CreateResourceDetails(item=CreateAccountItemDetails(...), region=...)` |
+| `400 INVALID_SR_TICKET_TITLE — Ticket Title is too long` | undocumented title length cap | keep the title under ~80 characters, put the detail in the description |
+| `update_incident() missing 1 required positional argument: 'compartment_id'` | signature differs from the published docs | pass `compartment_id` explicitly |
+| endless spinner on `support.oracle.com/?page=home` or `?page=dashboard` | your MOS account belongs to no user group | not fixable from your side; ignore the portal and use the API |
+
+Region codes: `YYZ` Toronto, `YUL` Montreal, `IAD` Ashburn, `PHX` Phoenix, `FRA`
+Frankfurt, `LHR` London, `NRT` Tokyo, `SYD` Sydney, `BOM` Mumbai, `GRU` Sao Paulo.
+[Full list](https://docs.oracle.com/en-us/iaas/Content/General/Concepts/regions.htm).
+
+> **Use the dry run, seriously.** While probing which payload shape the API would
+> accept, the first variant that validated went straight through and created a live
+> Service Request. There is no draft state and no confirmation step. Don't loop over
+> `create_incident` while experimenting — if you do file a stray SR, close it with
+> `manage_sr.py close <number> "filed in error"` and explain, rather than leaving it
+> in the queue.
+
+### Tracking the SR afterwards
+
+The console still returns `403` for the SR list, so the API is also how you read and
+update the request you just filed:
+
+```bash
+python3 manage_sr.py list                      # your ACCOUNT SRs and their state
+python3 manage_sr.py note  <number> "text"     # add a comment / ask for escalation
+python3 manage_sr.py close <number> "text"     # close one filed by mistake
+```
+
+Watch the `lifecycle_details` field:
+
+- `PENDING_WITH_ORACLE` — with them
+- `PENDING_WITH_CUSTOMER` — **they asked you something.** You get no console
+  notification and no reliable email, so poll for this
+- `CLOSED` — done
+
+Because of the forced `MEDIUM` severity, adding a `NOTES` activity that states your
+impact and that you are reachable at any time is worth doing right after filing.
+
+A cron job every 30 minutes that checks `lifecycle_details` and retries
+`oci compute instance action --action START` costs nothing. Put a hard `timeout` on
+every call — `START` against a disabled instance and SSH to a host that is down can
+both hang for a very long time.
 
 ### What to ask for in the SR body
 
