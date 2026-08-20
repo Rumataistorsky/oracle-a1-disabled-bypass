@@ -8,6 +8,12 @@ tenancy has no My Oracle Support account -- the API does not.
     python3 manage_sr.py note  12345678 "Please escalate, production is down"
     python3 manage_sr.py close 12345678 "Filed by mistake, please close"
 
+Note: GetIncident is gated behind the same My Oracle Support check that
+blocks TECH requests, so fetching one SR by number returns
+403 SUPPORT_ACCOUNT_NOT_FOUND. ListIncidents is not gated, which is why
+"list" below reads state by listing rather than getting. Notes and close
+both work normally.
+
 Watch the lifecycle_details field:
     PENDING_WITH_ORACLE    they have it
     PENDING_WITH_CUSTOMER  they asked you something -- you get no Console alert

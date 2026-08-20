@@ -204,6 +204,11 @@ Frankfurt, `LHR` London, `NRT` Tokyo, `SYD` Sydney, `BOM` Mumbai, `GRU` Sao Paul
 The console still returns `403` for the SR list, so the API is also how you read and
 update the request you just filed:
 
+One caveat: `GetIncident` is gated behind the same MOS check that blocks `TECH`, so
+fetching a single SR by number returns `403 SUPPORT_ACCOUNT_NOT_FOUND`. `ListIncidents`
+is not gated, so listing works and is how `manage_sr.py list` reads state. Updates
+(notes, close) work fine.
+
 ```bash
 python3 manage_sr.py list                      # your ACCOUNT SRs and their state
 python3 manage_sr.py note  <number> "text"     # add a comment / ask for escalation
@@ -233,6 +238,41 @@ Two concrete asks work better than a vague "please help":
    succeeds again.
 2. Provision/link a CSI and MOS support account for the tenancy, so future technical
    SRs don't hit the same wall.
+
+## Where an ACCOUNT SR actually lands (read this before you celebrate)
+
+Filing the SR works. Where it goes next is the part nobody warns you about.
+
+Within minutes of filing, both our requests were auto-acknowledged by
+**Oracle Canada Collections** (`collections_ca@oracle.com`) — the billing, invoicing and
+payment-chasing queue:
+
+```
+Thank you for contacting us! ... will be addressed within the next 2 working days.
+Also, in order to facilitate a prompt response to your request, please make sure you
+provide the following information in the email subject: customer name / invoice number
+```
+
+A team that asks for an invoice number is not a team that clears an instance-level
+disable flag. `problemType=ACCOUNT` appears to route to the regional collections desk,
+at least for a Canadian tenancy. Your region's queue may differ — if you try this, please
+open an issue saying which queue acknowledged you, because that mapping is the single
+most useful thing missing from this writeup.
+
+So treat the bypass accurately: **it gets your request in front of a human at Oracle. It
+does not guarantee that human is the right one.** That is still a large step up from
+"there is no button that works", but it is not the finish line.
+
+Two things worth doing immediately after filing:
+
+1. **Add a routing note to the SR** (`manage_sr.py note <number> "..."`) stating plainly
+   that this is not a billing or invoice matter, that the account is in good standing
+   with no outstanding invoice, and asking for the request to be routed to Cloud
+   Operations or Compute support.
+2. **Reply to the acknowledgement email.** It comes from a monitored human queue and
+   creates a second, parallel record. Lead with "this is not a billing enquiry" in the
+   very first line — before any technical detail — and put the customer name in the
+   subject, since that is what their intake process asks for.
 
 ## Status / disclaimer
 
