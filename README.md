@@ -239,6 +239,43 @@ Two concrete asks work better than a vague "please help":
 2. Provision/link a CSI and MOS support account for the tenancy, so future technical
    SRs don't hit the same wall.
 
+## If you get AUTHZ_FAILED instead
+
+A reader hit this and it is worth separating clearly, because it looks like our error but
+is not:
+
+```
+status: 403
+code: AUTHZ_FAILED
+message: Authorization failed for the request input.
+operation_name: create_incident
+```
+
+`AUTHZ_FAILED` is **IAM**, not My Oracle Support. `SUPPORT_ACCOUNT_NOT_FOUND` means Oracle
+knows who you are and is refusing the *problem type*; `AUTHZ_FAILED` means your OCI user
+is not permitted to create incidents at all. Nothing in this repo helps with that — the
+wall is one step earlier.
+
+Things to check, cheapest first:
+
+1. **Run `validate_user.py`.** If `ACCOUNT` returns `isValidUser: true` and
+   `create_incident` still fails with `AUTHZ_FAILED`, it is definitely policy, not MOS.
+2. **Are you using the tenancy root OCID?** `compartment_id` must be the tenancy OCID
+   (`ocid1.tenancy.oc1..`), not a child compartment. Passing a compartment is an easy way
+   to earn this error.
+3. **Is your user actually privileged?** Members of `Administrators` normally have this;
+   a plain user does not. Oracle's own documentation puts it as: "your user account must
+   have create privileges within a user group. If you can't create a service request, ask
+   the Customer User Administrator (CUA) to assign you create privileges."
+4. **Is there a policy covering support?** Support requests fall under the
+   `cloud-support-family` aggregate resource type, so a tenancy-level policy granting
+   `manage cloud-support-family` to your group is what you are looking for.
+5. **Right profile?** If `~/.oci/config` has several profiles, confirm the one you are
+   using belongs to the tenancy whose instance is disabled.
+
+Reference: [Creating a Support
+Request](https://docs.oracle.com/en-us/iaas/Content/GSG/support/create-incident.htm).
+
 ## Where an ACCOUNT SR actually lands (read this before you celebrate)
 
 Filing the SR works. Where it goes next is the part nobody warns you about.
@@ -254,10 +291,16 @@ provide the following information in the email subject: customer name / invoice 
 ```
 
 A team that asks for an invoice number is not a team that clears an instance-level
-disable flag. `problemType=ACCOUNT` appears to route to the regional collections desk,
-at least for a Canadian tenancy. Your region's queue may differ — if you try this, please
-open an issue saying which queue acknowledged you, because that mapping is the single
-most useful thing missing from this writeup.
+disable flag.
+
+**This is not a regional quirk.** It was first observed on a Canadian tenancy
+(`collections_ca@oracle.com`, `ca-toronto-1`), and a reader running in
+`eu-frankfurt-1` reported the same thing independently — acknowledged by
+`collections_de@oracle.com`. Two regions, same pattern: `problemType=ACCOUNT` routes to
+your **regional collections desk**. Assume yours will too.
+
+If you see a different queue, please open an issue — a counter-example would be more
+interesting than another confirmation.
 
 So treat the bypass accurately: **it gets your request in front of a human at Oracle. It
 does not guarantee that human is the right one.** That is still a large step up from
