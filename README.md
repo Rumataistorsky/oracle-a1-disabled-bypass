@@ -274,6 +274,15 @@ Two things worth doing immediately after filing:
    very first line — before any technical detail — and put the customer name in the
    subject, since that is what their intake process asks for.
 
+## Discussion
+
+There is a live thread on this, with an update on the collections routing in the
+comments: [r/oraclecloud — Workaround for "instance is disabled, contact
+support"](https://www.reddit.com/r/oraclecloud/comments/1vt8vac/workaround_for_instance_is_disabled_contact/)
+
+If you hit this too, a reply there saying which support queue acknowledged your SR and
+in which region is genuinely useful — that mapping is the biggest gap in this writeup.
+
 ## Status / disclaimer
 
 This documents one real case, filed and accepted by Oracle's API (visible as a real,
