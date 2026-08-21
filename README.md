@@ -256,7 +256,18 @@ knows who you are and is refusing the *problem type*; `AUTHZ_FAILED` means your 
 is not permitted to create incidents at all. Nothing in this repo helps with that — the
 wall is one step earlier.
 
-Things to check, cheapest first:
+**Check this first: is the tenancy still Always Free?** A reader on `uk-london-1`
+reported `AUTHZ_FAILED` on *all three* problem types — TECH, ACCOUNT and LIMIT alike —
+and fixed it not with policies but by adding a payment method and requesting the Pay As
+You Go switch. It started working before the upgrade request was even approved. If all
+three fail identically, suspect the account tier before you go digging through IAM.
+(They also reported the response alternating between `403` and `200` for a while, so if
+you get an inconsistent result, retry before concluding anything.)
+
+The pattern is worth internalising: failing on **all three** types points at the account
+or its permissions; failing on **TECH only** is the MOS gate this repo is about.
+
+If it is not the account tier, check these, cheapest first:
 
 1. **Run `validate_user.py`.** If `ACCOUNT` returns `isValidUser: true` and
    `create_incident` still fails with `AUTHZ_FAILED`, it is definitely policy, not MOS.
