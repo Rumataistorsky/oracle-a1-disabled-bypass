@@ -12,6 +12,12 @@ NAME="${2:-Roman}"
 CFG=/opt/traccar/conf/traccar.xml
 CRED=/root/fleet-credentials.txt
 
+restore_registration() {
+    pct exec "$CT" -- sed -i "s|<entry key='web.registration'>true</entry>|<entry key='web.registration'>false</entry>|" "$CFG" || true
+    pct exec "$CT" -- systemctl restart traccar || true
+}
+trap restore_registration EXIT
+
 EXISTING=$(pct exec 415 -- su postgres -c "psql -d traccar -tAc 'SELECT count(*) FROM tc_users;'" | tr -d '[:space:]')
 if [ "$EXISTING" != "0" ]; then
     echo "Користувачі вже існують ($EXISTING) — нічого не роблю."
@@ -29,12 +35,18 @@ for i in $(seq 1 30); do
 done
 
 echo "[2/4] створюю користувача"
+# administrator:true через API відхиляється, доки жодного адміна не існує
+# (PermissionsService.checkAdmin падає на NULL) — тому створюємо звичайного
+# користувача, а права піднімаємо прямо в БД.
 BODY=$(mktemp /root/.tcuser.XXXXXX.json)
-printf '{"name":"%s","email":"%s","password":"%s","administrator":true}\n' "$NAME" "$EMAIL" "$PW" > "$BODY"
+printf '{"name":"%s","email":"%s","password":"%s"}\n' "$NAME" "$EMAIL" "$PW" > "$BODY"
 RESP=$(curl -s -X POST "http://${HOST}/api/users" -H 'Content-Type: application/json' --data @"$BODY")
 shred -u "$BODY"
-echo "$RESP" | grep -q '"id"' || { echo "ПОМИЛКА створення користувача: $RESP"; exit 1; }
+echo "$RESP" | grep -q '"id"' || { echo "ПОМИЛКА створення користувача: $RESP" | head -3; exit 1; }
 echo "      створено: $(echo "$RESP" | grep -oP '"email"\s*:\s*"\K[^"]+')"
+
+echo "[2b/4] піднімаю права до адміністратора"
+pct exec 415 -- su postgres -c "psql -v ON_ERROR_STOP=1 -q -d traccar -c \"UPDATE tc_users SET administrator = true WHERE email = '${EMAIL}';\""
 
 echo "[3/4] вимикаю реєстрацію назад"
 pct exec "$CT" -- sed -i "s|<entry key='web.registration'>true</entry>|<entry key='web.registration'>false</entry>|" "$CFG"
