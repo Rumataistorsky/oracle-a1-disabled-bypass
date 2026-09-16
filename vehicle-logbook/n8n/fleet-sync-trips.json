@@ -62,7 +62,10 @@
           "id": "fleettraccarapi1",
           "name": "Traccar API (fleet)"
         }
-      }
+      },
+      "alwaysOutputData": true,
+      "notes": "alwaysOutputData обовʼязковий: без geofences Traccar повертає [], нода видає 0 items, і n8n обриває гілку — поїздки не збираються зовсім.",
+      "notesInFlow": false
     },
     {
       "parameters": {
