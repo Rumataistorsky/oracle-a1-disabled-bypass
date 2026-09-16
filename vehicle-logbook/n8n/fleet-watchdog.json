@@ -1,0 +1,149 @@
+{
+  "name": "Fleet — Watchdog (logbook)",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "23 */6 * * *"
+            }
+          ]
+        }
+      },
+      "id": "w-sched",
+      "name": "Every 6h",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -160,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "url": "https://fleet.rotes.ca/api/devices",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBasicAuth",
+        "options": {}
+      },
+      "id": "w-devices",
+      "name": "Traccar Devices",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        60,
+        300
+      ],
+      "credentials": {
+        "httpBasicAuth": {
+          "id": "fleettraccarapi1",
+          "name": "Traccar API (fleet)"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT\n  (SELECT count(*) FROM fleet.vehicles WHERE traccar_device_id IS NOT NULL) AS expected_devices,\n  (SELECT chat_id FROM fleet.drivers WHERE role='owner' AND active LIMIT 1) AS chat_id,\n  (SELECT count(*) FROM fleet.trips\n     WHERE classification='unclassified' AND started_at < now() - interval '72 hours') AS stale_unclassified,\n  (SELECT coalesce(sum(distance_km),0) FROM fleet.trips\n     WHERE classification='unclassified') AS unclassified_km,\n  (SELECT count(*) FROM fleet.trips\n     WHERE classification='business' AND (purpose IS NULL OR btrim(purpose)='')) AS business_no_purpose,\n  (SELECT count(*) FROM fleet.fuel_events\n     WHERE paid_by <> 'corporate_card' AND reimbursement_status IN ('pending','submitted')) AS pending_reimbursements,\n  (SELECT count(*) FROM fleet.fuel_events\n     WHERE receipt_url IS NULL) AS fuel_without_receipt,\n  (SELECT coalesce(sum(distance_km),0) FROM fleet.trips\n     WHERE trip_date > coalesce((SELECT max(occurred_on) FROM fleet.fuel_events), date '1970-01-01')) AS km_since_last_fuel,\n  (SELECT count(*) FROM fleet.odometer_readings\n     WHERE reason='year_end' AND extract(year from read_on)=extract(year from current_date)) AS have_year_end;",
+        "options": {}
+      },
+      "id": "w-checks",
+      "name": "DB Checks",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        280,
+        300
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "fleetdbfleetrw01",
+          "name": "Fleet DB (fleet_rw)"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Watchdog логбука. Найважливіша перевірка — «пристрій мовчить»:\n// тиха втрата даних руйнує base year, а його не можна відтворити заднім числом.\n\nconst c = $input.first().json;\nconst devices = ($('Traccar Devices').all() || []).map(i => i.json).flat();\n\nconst alerts = [];\nconst now = Date.now();\n\n// 1. пристрій мовчить\nif (devices.length === 0) {\n  // мовчимо, доки трекер не очікується: інакше алерт спамив би кожні 6 год\n  // усі місяці, поки залізо в дорозі\n  if (+c.expected_devices > 0) {\n    alerts.push('🔌 <b>Пристрій зник з Traccar</b> — його прописано в fleet.vehicles, але в Traccar його немає.');\n  }\n} else {\n  for (const d of devices) {\n    if (!d.lastUpdate) {\n      alerts.push(`🔌 <b>${d.name}</b> — жодної позиції з моменту реєстрації.`);\n      continue;\n    }\n    const hours = (now - new Date(d.lastUpdate).getTime()) / 3600000;\n    if (hours > 36) {\n      alerts.push(`🚨 <b>${d.name} мовчить ${Math.round(hours)} год</b> — перевір трекер. Пропуски в логбуку не відновлюються.`);\n    }\n  }\n}\n\n// 2. некласифіковані поїздки\nif (+c.stale_unclassified > 0) {\n  alerts.push(`❓ <b>${c.stale_unclassified}</b> поїздок без класифікації понад 72 год (${c.unclassified_km} км). При перевірці це трактується не на твою користь.`);\n}\n\n// 3. бізнес-поїздки без мети — CRA вимагає поле «мета»\nif (+c.business_no_purpose > 0) {\n  alerts.push(`📝 <b>${c.business_no_purpose}</b> бізнес-поїздок без вказаної мети.`);\n}\n\n// 4. пробіг без жодної заправки\nif (+c.km_since_last_fuel > 500) {\n  alerts.push(`⛽ <b>${c.km_since_last_fuel} км</b> без жодного чека на пальне. Готівка без чека = ні вирахування, ні HST ITC, ні зменшення benefit.`);\n}\n\nif (+c.fuel_without_receipt > 0) {\n  alerts.push(`🧾 <b>${c.fuel_without_receipt}</b> заправок без прикріпленого чека.`);\n}\n\n// 5. дедлайн відшкодування — 45 днів після кінця року\nconst d = new Date();\nconst month = d.getMonth() + 1, day = d.getDate();\nif (month === 1 && day >= 20 && +c.pending_reimbursements > 0) {\n  alerts.push(`⏳ <b>${c.pending_reimbursements}</b> невідшкодованих особистих оплат. Дедлайн 14 лютого — інакше operating benefit не обнуляється.`);\n}\n\n// 6. одометр на кінець року\nif (month === 12 && day >= 28 && +c.have_year_end === 0) {\n  alerts.push('📸 <b>Немає фото одометра на кінець року.</b> Це перше, що просять при перевірці.');\n}\n\nif (alerts.length === 0) return [];\n\nreturn [{ json: {\n  chat_id: c.chat_id,\n  text: '<b>🚐 Логбук Pacifica</b>\\n\\n' + alerts.join('\\n\\n')\n} }];"
+      },
+      "id": "w-build",
+      "name": "Build Alerts",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        520,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://api.telegram.org/bot{{ $env.TELEGRAM_BOT_TOKEN }}/sendMessage",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ chat_id: $json.chat_id, text: $json.text, parse_mode: 'HTML' }) }}",
+        "options": {}
+      },
+      "id": "w-alert",
+      "name": "Telegram Alert",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        760,
+        300
+      ]
+    }
+  ],
+  "connections": {
+    "Every 6h": {
+      "main": [
+        [
+          {
+            "node": "Traccar Devices",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Traccar Devices": {
+      "main": [
+        [
+          {
+            "node": "DB Checks",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "DB Checks": {
+      "main": [
+        [
+          {
+            "node": "Build Alerts",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Alerts": {
+      "main": [
+        [
+          {
+            "node": "Telegram Alert",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "active": false
+}
