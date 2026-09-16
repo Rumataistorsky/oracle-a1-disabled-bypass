@@ -62,7 +62,7 @@ homelab-інфраструктурі (Proxmox `pve` 192.168.2.230).
 | Файл | Зміст |
 |---|---|
 | [`01-compliance-cra.md`](./01-compliance-cra.md) | Вимоги CRA, розрахунок standby charge / operating benefit, що саме треба фіксувати |
-| [`02-hardware-selection.md`](./02-hardware-selection.md) | Вибір трекера, канадські LTE-бенди, тест наявного PlanetGPS |
+| [`02-hardware-selection.md`](./02-hardware-selection.md) | Вибір трекера: рішення, канадські LTE-бенди, LTE-M SIM, чек-листи замовлення і введення в експлуатацію |
 | [`03-traccar-lxc426.md`](./03-traccar-lxc426.md) | Розгортання Traccar: LXC, Postgres, Caddy, Authentik |
 | [`04-data-model.sql`](./04-data-model.sql) | Схема `fleet` у PostgreSQL |
 | [`05-n8n-workflows.md`](./05-n8n-workflows.md) | Воркфлоу класифікації, leads, чеки, Invoice Ninja |
@@ -75,7 +75,7 @@ homelab-інфраструктурі (Proxmox `pve` 192.168.2.230).
 1. **День 0 (негайно, не чекаючи заліза).** Фото одометра. Ручний облік у
    Nextcloud Tables за формою з `01`. Base year стартує з дня набуття — його
    не можна відтворити заднім числом.
-2. **Тиждень 1.** Тест наявного PlanetGPS (`02`). Рішення по залізу.
+2. **Тиждень 1.** Замовити Teltonika FMM003 + LTE-M SIM (`02`).
 3. **Тиждень 2.** LXC 426 Traccar (`03`), схема БД (`04`), geofences.
 4. **Тиждень 3.** n8n-воркфлоу (`05`), бот класифікації.
 5. **Тиждень 4.** Metabase-дашборд і експорт (`06`). Памʼятка водію (`07`),
@@ -89,6 +89,8 @@ homelab-інфраструктурі (Proxmox `pve` 192.168.2.230).
 | 2026-09-16 | Source of truth логбука — PostgreSQL, не Invoice Ninja | IN не має mileage-модуля; гроші і кілометри розділені |
 | 2026-09-16 | Бухгалтерія — Invoice Ninja (LXC 513) | QuickBooks відключено |
 | 2026-09-16 | Не будувати трекер самостійно | Асиметрія ризику: тиха втрата даних ламає base year, який не переграєш |
+| 2026-09-16 | Трекер — **Teltonika FMM003** | лінійка FMM на модулі BG95-M3 має глобальні бенди і покриває Канаду (B4/B12/B13/B66); регіональні NA-моделі лінійки FMC у статусі EOL |
+| 2026-09-16 | Реального одометра з CAN не буде | Stellantis відсутній у списку OEM-параметрів Teltonika; пробіг з GPS, одометр на рік — фото |
 
 ## Застереження
 
