@@ -1,0 +1,43 @@
+{
+  "id": "FleetErrorHandl1",
+  "name": "Fleet — Error Handler (logbook)",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "e-trigger",
+      "name": "On Error",
+      "type": "n8n-nodes-base.errorTrigger",
+      "typeVersion": 1,
+      "position": [0, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Обробник помилок логбука.\n// Свідомо НЕ звертається до Postgres: якщо впала саме база, обробник\n// мусить лишитися здатним повідомити. Тому chat_id зашитий константою.\n\nconst CHAT_ID = '-1004302974909';   // група ROTES Logbook\n\nconst j = $input.first().json || {};\nconst wf = j.workflow || {};\nconst ex = j.execution || {};\nconst err = ex.error || {};\n\nconst esc = s => String(s == null ? '' : s)\n  .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');\n\nconst when = new Date().toLocaleString('uk-UA', { timeZone: 'America/Moncton' });\n\nconst lines = [\n  '🛑 <b>Помилка у логбуці</b>',\n  '',\n  `<b>Воркфлоу:</b> ${esc(wf.name || 'невідомо')}`,\n  `<b>Вузол:</b> ${esc(ex.lastNodeExecuted || 'невідомо')}`,\n  `<b>Час:</b> ${esc(when)}`,\n  '',\n  `<b>Причина:</b>\\n<code>${esc(String(err.message || 'без повідомлення').slice(0, 500))}</code>`\n];\n\nif (ex.url) lines.push('', `<a href=\"${esc(ex.url)}\">відкрити виконання</a>`);\n\nlines.push('', '<i>Поїздки за цей період могли не записатися. Перевір після виправлення.</i>');\n\nreturn [{ json: { chat_id: CHAT_ID, text: lines.join('\\n') } }];"
+      },
+      "id": "e-build",
+      "name": "Build Message",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [240, 300]
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $json.chat_id }}",
+        "text": "={{ $json.text }}",
+        "additionalFields": { "parse_mode": "HTML", "appendAttribution": false }
+      },
+      "id": "e-send",
+      "name": "Notify Group",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [480, 300],
+      "credentials": { "telegramApi": { "id": "fleettelegrambot1", "name": "ROTES Logbook Bot" } }
+    }
+  ],
+  "connections": {
+    "On Error":      { "main": [[{ "node": "Build Message", "type": "main", "index": 0 }]] },
+    "Build Message": { "main": [[{ "node": "Notify Group", "type": "main", "index": 0 }]] }
+  },
+  "settings": { "executionOrder": "v1" },
+  "active": false
+}
