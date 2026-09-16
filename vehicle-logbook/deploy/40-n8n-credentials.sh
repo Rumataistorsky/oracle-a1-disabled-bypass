@@ -51,6 +51,15 @@ cat > "$TMP/creds.json" <<JSON
 JSON
 
 pct push "$N8N_CT" "$TMP/creds.json" /tmp/fleet-creds.json --perms 600
-pct exec "$N8N_CT" -- bash -c 'docker cp /tmp/fleet-creds.json n8n:/tmp/fleet-creds.json && docker exec n8n n8n import:credentials --input=/tmp/fleet-creds.json && docker exec n8n rm -f /tmp/fleet-creds.json; shred -u /tmp/fleet-creds.json'
+# n8n у контейнері працює не від root, тож після docker cp (root:root 600)
+# файл треба віддати користувачу процесу, інакше import падає з EACCES.
+pct exec "$N8N_CT" -- bash -c '
+set -e
+docker cp /tmp/fleet-creds.json n8n:/tmp/fleet-creds.json
+docker exec -u 0 n8n chmod 0644 /tmp/fleet-creds.json
+docker exec n8n n8n import:credentials --input=/tmp/fleet-creds.json
+docker exec -u 0 n8n rm -f /tmp/fleet-creds.json
+shred -u /tmp/fleet-creds.json
+'
 
 echo "N8N_CREDENTIALS_DONE"
