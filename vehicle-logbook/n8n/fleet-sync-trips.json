@@ -124,6 +124,7 @@
     },
     {
       "parameters": {
+        "operation": "upsert",
         "schema": {
           "__rl": true,
           "mode": "name",
@@ -156,7 +157,8 @@
           "id": "fleetdbfleetrw01",
           "name": "Fleet DB (fleet_rw)"
         }
-      }
+      },
+      "notes": "operation=upsert обовʼязковий. За замовчуванням нода робить insert, і другий прогін падає на unique-constraint traccar_trip_key: вікно вибірки 48 год, тож ті самі поїздки приходять щогодини."
     }
   ],
   "connections": {
