@@ -279,6 +279,7 @@ Uptime Kuma (LXC 901) — **додати вручну**, її API працює �
 | 14 | `CLIENT-UBEH-CENTENNIAL` | 45.979886, -66.598197 | 150 | Promise Ubeh, 12 Centennial Ct |
 | 15 | `CLIENT-CCNB-BATHURST` | 47.623035, -65.668696 | 300 | CCNB, Bathurst, 250 км |
 | 16 | `CLIENT-UTIMUS-PETERBOROUGH` | 44.309589, -78.330859 | 150 | Utimus, Peterborough ON |
+| 17 | `CLIENT-MCDONALD-WATERLOO` | 45.954496, -66.632933 | 120 | Brian McDonald, 58 Waterloo Row |
 
 Центри 1-8 і 10 взяті з **реальних GPS-точок стоянки**, а не з геокодера:
 OSM ставить точку Canadian Tire за 200-350 м від місця, де авто справді
@@ -290,6 +291,13 @@ OSM ставить точку Canadian Tire за 200-350 м від місця, �
 Клієнти 11-16 заведені з адрес в Invoice Ninja. Для 11, 12, 13 і 16 OSM знає
 номер будинку, тож центр точний. Для 14 і 15 знайдено лише вулицю — центроїд
 може промахнутися, звузити після першого реального виїзду.
+
+Brian McDonald адреси в Invoice Ninja не має взагалі — тільки пошта й телефон.
+Координату (58 Waterloo Row) дав Роман з місця, тому радіус одразу 120 м.
+
+Ще шість клієнтів без адреси в Invoice Ninja, разом ~44k оплачених робіт:
+Bogdan George Itoafa, Trevor Wells, Andriy Volikhovskyy, David Itoafa,
+Olena Volikhovska. Поїздки до них лишатимуться `unclassified` з прапорцем.
 
 Двоє клієнтів geofence **не мають**:
 
