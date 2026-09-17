@@ -7,14 +7,25 @@
         "httpMethod": "POST",
         "path": "fleet-bot",
         "responseMode": "onReceived",
-        "options": {}
+        "options": {},
+        "authentication": "headerAuth"
       },
       "id": "b-hook",
       "name": "Telegram Webhook",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2,
-      "position": [-220, 300],
-      "webhookId": "fleet-bot-9c1f"
+      "position": [
+        -220,
+        300
+      ],
+      "webhookId": "fleet-bot-9c1f",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "fleettgsecret001",
+          "name": "Telegram Webhook Secret"
+        }
+      },
+      "notes": "Ендпойнт публічний і пише в податковий запис, тому приймаємо лише запити з секретом, який Telegram передає у X-Telegram-Bot-Api-Secret-Token."
     },
     {
       "parameters": {
@@ -24,43 +35,112 @@
       "name": "Розбір оновлення",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [0, 300]
+      "position": [
+        0,
+        300
+      ]
     },
     {
       "parameters": {
         "rules": {
           "values": [
-            { "conditions": { "options": { "caseSensitive": true, "version": 2 }, "combinator": "and",
-              "conditions": [ { "leftValue": "={{ $json.kind }}", "rightValue": "callback",
-                "operator": { "type": "string", "operation": "equals" } } ] }, "outputKey": "callback" },
-            { "conditions": { "options": { "caseSensitive": true, "version": 2 }, "combinator": "and",
-              "conditions": [ { "leftValue": "={{ $json.kind }}", "rightValue": "purpose",
-                "operator": { "type": "string", "operation": "equals" } } ] }, "outputKey": "purpose" },
-            { "conditions": { "options": { "caseSensitive": true, "version": 2 }, "combinator": "and",
-              "conditions": [ { "leftValue": "={{ $json.kind }}", "rightValue": "photo",
-                "operator": { "type": "string", "operation": "equals" } } ] }, "outputKey": "photo" }
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "version": 2
+                },
+                "combinator": "and",
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.kind }}",
+                    "rightValue": "callback",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ]
+              },
+              "outputKey": "callback"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "version": 2
+                },
+                "combinator": "and",
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.kind }}",
+                    "rightValue": "purpose",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ]
+              },
+              "outputKey": "purpose"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "version": 2
+                },
+                "combinator": "and",
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.kind }}",
+                    "rightValue": "photo",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ]
+              },
+              "outputKey": "photo"
+            }
           ]
         },
-        "options": { "fallbackOutput": "none" }
+        "options": {
+          "fallbackOutput": "none"
+        }
       },
       "id": "b-switch",
       "name": "Тип події",
       "type": "n8n-nodes-base.switch",
       "typeVersion": 3.2,
-      "position": [220, 300]
+      "position": [
+        220,
+        300
+      ]
     },
     {
       "parameters": {
         "operation": "executeQuery",
         "query": "UPDATE fleet.trips t\n   SET classification = $1,\n       classified_by  = 'driver',\n       classified_at  = now(),\n       driver_id      = fleet.driver_for_tap(t.vehicle_id, $2::bigint, t.started_at),\n       review_flag    = false\n WHERE t.id = $3::bigint\nRETURNING t.id,\n          t.classification,\n          (SELECT label FROM fleet.drivers WHERE id = t.driver_id) AS driver_label,\n          EXISTS (SELECT 1 FROM fleet.driver_accounts WHERE telegram_user_id = $2::bigint) AS account_known;",
-        "options": { "queryReplacement": "={{ $json.classification }},{{ $json.tg_user_id }},{{ $json.trip_id }}" }
+        "options": {
+          "queryReplacement": "={{ $json.classification }},{{ $json.tg_user_id }},{{ $json.trip_id }}"
+        }
       },
       "id": "b-classify",
       "name": "Записати класифікацію",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
-      "position": [460, 140],
-      "credentials": { "postgres": { "id": "fleetdbfleetrw01", "name": "Fleet DB (fleet_rw)" } }
+      "position": [
+        460,
+        140
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "fleetdbfleetrw01",
+          "name": "Fleet DB (fleet_rw)"
+        }
+      }
     },
     {
       "parameters": {
@@ -70,21 +150,34 @@
       "name": "Текст підтвердження",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [680, 140]
+      "position": [
+        680,
+        140
+      ]
     },
     {
       "parameters": {
         "resource": "callback",
         "operation": "answerQuery",
         "queryId": "={{ $json.callback_query_id }}",
-        "additionalFields": { "text": "={{ $json.toast }}" }
+        "additionalFields": {
+          "text": "={{ $json.toast }}"
+        }
       },
       "id": "b-answer",
       "name": "Прибрати годинник",
       "type": "n8n-nodes-base.telegram",
       "typeVersion": 1.2,
-      "position": [900, 140],
-      "credentials": { "telegramApi": { "id": "fleettelegrambot1", "name": "ROTES Logbook Bot" } }
+      "position": [
+        900,
+        140
+      ],
+      "credentials": {
+        "telegramApi": {
+          "id": "fleettelegrambot1",
+          "name": "ROTES Logbook Bot"
+        }
+      }
     },
     {
       "parameters": {
@@ -92,84 +185,229 @@
         "chatId": "={{ $('Текст підтвердження').item.json.chat_id }}",
         "messageId": "={{ $('Текст підтвердження').item.json.message_id }}",
         "text": "={{ $('Текст підтвердження').item.json.new_text }}",
-        "additionalFields": { "parse_mode": "HTML" }
+        "additionalFields": {
+          "parse_mode": "HTML"
+        }
       },
       "id": "b-edit",
       "name": "Оновити картку",
       "type": "n8n-nodes-base.telegram",
       "typeVersion": 1.2,
-      "position": [1120, 140],
-      "credentials": { "telegramApi": { "id": "fleettelegrambot1", "name": "ROTES Logbook Bot" } }
+      "position": [
+        1120,
+        140
+      ],
+      "credentials": {
+        "telegramApi": {
+          "id": "fleettelegrambot1",
+          "name": "ROTES Logbook Bot"
+        }
+      }
     },
     {
       "parameters": {
         "operation": "executeQuery",
         "query": "UPDATE fleet.trips SET purpose = $1\n WHERE telegram_message_id = $2::bigint\nRETURNING id, purpose;",
-        "options": { "queryReplacement": "={{ $json.purpose }},{{ $json.reply_to_message_id }}" }
+        "options": {
+          "queryReplacement": "={{ $json.purpose }},{{ $json.reply_to_message_id }}"
+        }
       },
       "id": "b-purpose",
       "name": "Записати мету",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
-      "position": [460, 320],
+      "position": [
+        460,
+        320
+      ],
       "alwaysOutputData": true,
-      "credentials": { "postgres": { "id": "fleetdbfleetrw01", "name": "Fleet DB (fleet_rw)" } }
+      "credentials": {
+        "postgres": {
+          "id": "fleetdbfleetrw01",
+          "name": "Fleet DB (fleet_rw)"
+        }
+      }
     },
     {
       "parameters": {
         "chatId": "={{ $('Розбір оновлення').item.json.chat_id }}",
         "text": "={{ $json.id ? '✍️ Мета записана.' : '⚠️ Не знайшов поїздку для цієї відповіді.' }}",
-        "additionalFields": { "reply_to_message_id": "={{ $('Розбір оновлення').item.json.message_id }}", "appendAttribution": false }
+        "additionalFields": {
+          "reply_to_message_id": "={{ $('Розбір оновлення').item.json.message_id }}",
+          "appendAttribution": false
+        }
       },
       "id": "b-purpose-ok",
       "name": "Підтвердити мету",
       "type": "n8n-nodes-base.telegram",
       "typeVersion": 1.2,
-      "position": [680, 320],
-      "credentials": { "telegramApi": { "id": "fleettelegrambot1", "name": "ROTES Logbook Bot" } }
+      "position": [
+        680,
+        320
+      ],
+      "credentials": {
+        "telegramApi": {
+          "id": "fleettelegrambot1",
+          "name": "ROTES Logbook Bot"
+        }
+      }
     },
     {
       "parameters": {
         "operation": "executeQuery",
         "query": "INSERT INTO fleet.photos (kind, taken_at, telegram_file_id, from_tg_user_id, driver_id, trip_id, note)\nSELECT $1, $2::timestamptz, $3, $4::bigint,\n       (SELECT driver_id FROM fleet.driver_accounts WHERE telegram_user_id = $4::bigint),\n       fleet.trip_at((SELECT id FROM fleet.vehicles ORDER BY id LIMIT 1), $2::timestamptz),\n       $5\n  ON CONFLICT (telegram_file_id) DO NOTHING\nRETURNING id, trip_id;",
-        "options": { "queryReplacement": "={{ $json.photo_kind }},{{ $json.taken_at }},{{ $json.file_id }},{{ $json.tg_user_id }},{{ $json.caption }}" }
+        "options": {
+          "queryReplacement": "={{ $json.photo_kind }},{{ $json.taken_at }},{{ $json.file_id }},{{ $json.tg_user_id }},{{ $json.caption }}"
+        }
       },
       "id": "b-photo",
       "name": "Зберегти фото",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
-      "position": [460, 500],
+      "position": [
+        460,
+        500
+      ],
       "alwaysOutputData": true,
-      "credentials": { "postgres": { "id": "fleetdbfleetrw01", "name": "Fleet DB (fleet_rw)" } }
+      "credentials": {
+        "postgres": {
+          "id": "fleetdbfleetrw01",
+          "name": "Fleet DB (fleet_rw)"
+        }
+      }
     },
     {
       "parameters": {
         "chatId": "={{ $('Розбір оновлення').item.json.chat_id }}",
         "text": "={{ $json.trip_id ? '📷 Фото прийнято і привʼязано до поїздки.' : '📷 Фото прийнято. Поїздку за часом не знайшов — привʼяжу, коли синхронізація підтягне трек.' }}",
-        "additionalFields": { "reply_to_message_id": "={{ $('Розбір оновлення').item.json.message_id }}", "appendAttribution": false }
+        "additionalFields": {
+          "reply_to_message_id": "={{ $('Розбір оновлення').item.json.message_id }}",
+          "appendAttribution": false
+        }
       },
       "id": "b-photo-ok",
       "name": "Підтвердити фото",
       "type": "n8n-nodes-base.telegram",
       "typeVersion": 1.2,
-      "position": [680, 500],
-      "credentials": { "telegramApi": { "id": "fleettelegrambot1", "name": "ROTES Logbook Bot" } }
+      "position": [
+        680,
+        500
+      ],
+      "credentials": {
+        "telegramApi": {
+          "id": "fleettelegrambot1",
+          "name": "ROTES Logbook Bot"
+        }
+      }
     }
   ],
   "connections": {
-    "Telegram Webhook":      { "main": [[{ "node": "Розбір оновлення", "type": "main", "index": 0 }]] },
-    "Розбір оновлення":      { "main": [[{ "node": "Тип події", "type": "main", "index": 0 }]] },
-    "Тип події":             { "main": [
-                                 [{ "node": "Записати класифікацію", "type": "main", "index": 0 }],
-                                 [{ "node": "Записати мету", "type": "main", "index": 0 }],
-                                 [{ "node": "Зберегти фото", "type": "main", "index": 0 }]
-                               ] },
-    "Записати класифікацію": { "main": [[{ "node": "Текст підтвердження", "type": "main", "index": 0 }]] },
-    "Текст підтвердження":   { "main": [[{ "node": "Прибрати годинник", "type": "main", "index": 0 }]] },
-    "Прибрати годинник":     { "main": [[{ "node": "Оновити картку", "type": "main", "index": 0 }]] },
-    "Записати мету":         { "main": [[{ "node": "Підтвердити мету", "type": "main", "index": 0 }]] },
-    "Зберегти фото":         { "main": [[{ "node": "Підтвердити фото", "type": "main", "index": 0 }]] }
+    "Telegram Webhook": {
+      "main": [
+        [
+          {
+            "node": "Розбір оновлення",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Розбір оновлення": {
+      "main": [
+        [
+          {
+            "node": "Тип події",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Тип події": {
+      "main": [
+        [
+          {
+            "node": "Записати класифікацію",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Записати мету",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Зберегти фото",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Записати класифікацію": {
+      "main": [
+        [
+          {
+            "node": "Текст підтвердження",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Текст підтвердження": {
+      "main": [
+        [
+          {
+            "node": "Прибрати годинник",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Прибрати годинник": {
+      "main": [
+        [
+          {
+            "node": "Оновити картку",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Записати мету": {
+      "main": [
+        [
+          {
+            "node": "Підтвердити мету",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Зберегти фото": {
+      "main": [
+        [
+          {
+            "node": "Підтвердити фото",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
   },
-  "settings": { "executionOrder": "v1", "errorWorkflow": "FleetErrorHandl1" },
+  "settings": {
+    "executionOrder": "v1",
+    "errorWorkflow": "FleetErrorHandl1"
+  },
   "active": false
 }
