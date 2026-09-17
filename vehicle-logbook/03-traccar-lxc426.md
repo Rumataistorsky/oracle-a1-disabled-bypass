@@ -107,20 +107,37 @@ Traccar сам призначає **першого** створеного кор
 
 <entry key='report.trip.minimalTripDistance'>300</entry>
 <entry key='report.trip.minimalTripDuration'>120</entry>
-<entry key='report.trip.minimalParkingDuration'>180</entry>
-<entry key='report.trip.useIgnition'>true</entry>
+<entry key='report.trip.minimalParkingDuration'>60</entry>
+<entry key='report.trip.useIgnition'>false</entry>   <!-- див. нижче -->
 
 <entry key='filter.enable'>true</entry>            <!-- сміття не має потрапляти -->
 <entry key='filter.invalid'>true</entry>           <!-- у податковий облік -->
 <entry key='filter.zero'>true</entry>
 <entry key='filter.duplicate'>true</entry>
-<entry key='filter.distance'>20</entry>
+<!-- filter.distance свідомо вимкнено -->
 
 <entry key='database.positionsHistoryDays'>0</entry> <!-- не видаляти історію -->
 ```
 
 `positionsHistoryDays=0` критичний: логбук зберігається сім років, автоматичне
 підчищення позицій знищило б доказову базу.
+
+### `useIgnition=false` — не косметика
+
+Traccar нарізає поїздки за одним сигналом: `useIgnition=true` → дивиться лише
+атрибут `ignition`, `false` → лише `motion`. Телефон-міст шле osmand-пакет без
+`ignition`, тому при `true` кожна позиція читалася як «запалення вимкнене»:
+`/api/reports/trips` повертав `[]` — порожній масив, HTTP 200, жодної помилки в
+логах. Поїздки їздилися, позиції писалися, `fleet.trips` лишалася порожня.
+
+Teltonika FMM003 через OBD шле і `ignition`, і `motion`, тож `false` коректний
+і після переходу на залізний трекер. Якщо колись знадобиться саме запалення —
+вмикати не глобально, а атрибутом конкретного пристрою.
+
+### `filter.distance` не вмикати
+
+Traccar розпізнає стоянку саме зі стаціонарних точок. `filter.distance=20`
+відкидає їх як «зайві» — і стоянка зникає разом із межею між поїздками.
 
 Публічний Nominatim має жорсткий rate limit. Для одного авто вистачає, але
 якщо машин стане більше — власний інстанс або платний геокодер.

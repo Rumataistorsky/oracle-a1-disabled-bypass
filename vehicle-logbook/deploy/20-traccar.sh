@@ -51,15 +51,21 @@ cat > "$TMP" <<XML
     <!-- нарізка поїздок під логбук -->
     <entry key='report.trip.minimalTripDistance'>300</entry>
     <entry key='report.trip.minimalTripDuration'>120</entry>
-    <entry key='report.trip.minimalParkingDuration'>180</entry>
-    <entry key='report.trip.useIgnition'>true</entry>
+    <entry key='report.trip.minimalParkingDuration'>60</entry>
+    <!-- useIgnition=false обовʼязково. Telefon-міст (osmand) не передає
+         ignition, і при true Traccar вважає пристрій вічно зупиненим:
+         /api/reports/trips мовчки повертає [] — жодної поїздки, жодної
+         помилки. Teltonika FMM003 шле і ignition, і motion, тому motion
+         лишається спільним знаменником для обох джерел. -->
+    <entry key='report.trip.useIgnition'>false</entry>
 
     <!-- фільтри: сміттєві точки не мають потрапляти в податковий облік -->
     <entry key='filter.enable'>true</entry>
     <entry key='filter.invalid'>true</entry>
     <entry key='filter.zero'>true</entry>
     <entry key='filter.duplicate'>true</entry>
-    <entry key='filter.distance'>20</entry>
+    <!-- filter.distance НЕ вмикати: він відкидає стаціонарні точки, з яких
+         Traccar розпізнає стоянку, і поїздки перестають нарізатися. -->
     <entry key='filter.skipLimit'>10000</entry>
 
     <entry key='event.enable'>true</entry>
