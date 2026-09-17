@@ -67,6 +67,10 @@ cat > "$TMP" <<XML
     <entry key='filter.invalid'>true</entry>
     <entry key='filter.zero'>true</entry>
     <entry key='filter.duplicate'>true</entry>
+    <!-- Телефон на стоянці зрідка віддає точку з похибкою 60-180 м: координата
+         стрибає на 300-400 м убік і назад, і Traccar рахує це як пройдену
+         відстань. За дві години стоянки набігало шість фальшивих поїздок. -->
+    <entry key='filter.accuracy'>50</entry>
     <!-- filter.distance НЕ вмикати: він відкидає стаціонарні точки, з яких
          Traccar розпізнає стоянку, і поїздки перестають нарізатися. -->
     <entry key='filter.skipLimit'>10000</entry>
