@@ -52,6 +52,9 @@ cat > "$TMP" <<XML
     <entry key='report.trip.minimalTripDistance'>300</entry>
     <entry key='report.trip.minimalTripDuration'>120</entry>
     <entry key='report.trip.minimalParkingDuration'>60</entry>
+    <!-- Мав би розривати поїздку на провалі звʼязку. У 6.15.3 ефекту не дав —
+         захист від зшитих поїздок стоїть у класифікаторі n8n (review_flag). -->
+    <entry key='report.trip.minimalNoDataDuration'>900</entry>
     <!-- useIgnition=false обовʼязково. Telefon-міст (osmand) не передає
          ignition, і при true Traccar вважає пристрій вічно зупиненим:
          /api/reports/trips мовчки повертає [] — жодної поїздки, жодної
