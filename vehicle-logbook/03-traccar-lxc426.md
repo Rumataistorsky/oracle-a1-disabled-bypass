@@ -270,9 +270,15 @@ Uptime Kuma (LXC 901) — **додати вручну**, її API працює �
 | 5 | `SUPPLIER-TWO-NATIONS` | 45.9877725, -66.627988 | 260 | Two Nations Crossing, Canadian Tire |
 | 6 | `SUPPLIER-SUPERSTORE-SMYTHE` | 45.9584767, -66.657964 | 150 | Atlantic Superstore Smythe St |
 | 7 | `SUPPLIER-SUPERSTORE-MAIN` | 45.9781423, -66.6575621 | 150 | Atlantic Superstore Main St |
-| 8 | `CLIENT-CROWTHER-LANE` | 45.9317769, -66.6583052 | 120 | робоче місце клієнта, прорахунки |
-| 9 | `CLIENT-MARLBOROUGH-67` | 45.9588027, -66.6749435 | 250 | дім того ж клієнта, майбутній обʼєкт |
+| 8 | `CLIENT-DUNCAN-CROWTHER` | 45.9317769, -66.6583052 | 120 | робоче місце Duncan, прорахунки |
+| 9 | `CLIENT-DUNCAN-MARLBOROUGH` | 45.959936, -66.673496 | 120 | 67 Marlborough Dr, дім Duncan |
 | 10 | `CLIENT-ROMAN-MARUSIIA` | 45.962166, -66.6915 | 150 | 485 Golf Club Rd, активний проєкт |
+| 11 | `CLIENT-KILCLINE-WETMORE` | 45.92623, -66.629709 | 150 | Albert Kilcline, 675 Wetmore Rd |
+| 12 | `CLIENT-LI-JAFFREY` | 45.972497, -66.635579 | 150 | LI CHANGHUA, 125 Jaffrey St |
+| 13 | `CLIENT-XIN-QI-HUNTINGDON` | 45.925888, -66.63593 | 150 | Xin and Qi, 25 Huntingdon Cir |
+| 14 | `CLIENT-UBEH-CENTENNIAL` | 45.979886, -66.598197 | 150 | Promise Ubeh, 12 Centennial Ct |
+| 15 | `CLIENT-CCNB-BATHURST` | 47.623035, -65.668696 | 300 | CCNB, Bathurst, 250 км |
+| 16 | `CLIENT-UTIMUS-PETERBOROUGH` | 44.309589, -78.330859 | 150 | Utimus, Peterborough ON |
 
 Центри 1-8 і 10 взяті з **реальних GPS-точок стоянки**, а не з геокодера:
 OSM ставить точку Canadian Tire за 200-350 м від місця, де авто справді
@@ -280,6 +286,24 @@ OSM ставить точку Canadian Tire за 200-350 м від місця, �
 
 №9 — виняток: будинку 67 у OSM немає, центр узято з центроїда вулиці.
 Радіус 250 м навмисно широкий; звузити після першого реального виїзду.
+
+Клієнти 11-16 заведені з адрес в Invoice Ninja. Для 11, 12, 13 і 16 OSM знає
+номер будинку, тож центр точний. Для 14 і 15 знайдено лише вулицю — центроїд
+може промахнутися, звузити після першого реального виїзду.
+
+Двоє клієнтів geofence **не мають**:
+
+* **Ellen and Roman Mashtalyar**, Academy Ct — OSM такої вулиці не знає;
+* **Rosales Tony**, 3516 Route 101, Tracyville — сільська траса, номера в OSM
+  немає. Центроїд траси покрив би кілометри дороги, і звичайний проїзд повз
+  зараховувався б як візит до клієнта. Краще порожньо, ніж хибно: без
+  geofence поїздка лишиться `unclassified` з прапорцем на перевірку.
+
+Обидва чекають на реальну GPS-точку з місця.
+
+`CLIENT-UTIMUS-PETERBOROUGH` і `CLIENT-CCNB-BATHURST` — за 1000 і 250 км.
+Хибних спрацювань не дадуть, а якщо туди колись буде виїзд, він одразу
+ляже як бізнес.
 
 №10 спершу стояв посередині між двома точками стоянки 17.09 з радіусом
 250 м. Роман дав координату з місця, тож центр перенесено на неї, а радіус
