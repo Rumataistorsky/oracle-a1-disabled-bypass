@@ -1,0 +1,175 @@
+{
+  "id": "FleetBotWebhook1",
+  "name": "Fleet — Bot Webhook (logbook)",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "fleet-bot",
+        "responseMode": "onReceived",
+        "options": {}
+      },
+      "id": "b-hook",
+      "name": "Telegram Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [-220, 300],
+      "webhookId": "fleet-bot-9c1f"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Розбір оновлення від Telegram. Telegram шле багато типів подій —\n// беремо лише ті три, що нас цікавлять, решту тихо ігноруємо.\n\nconst u = $input.first().json.body || $input.first().json || {};\n\nconst ACTION = {\n  est: { classification: 'business', label: 'Оцінка/замір',   ask_purpose: true  },\n  job: { classification: 'business', label: 'Обʼєкт у роботі', ask_purpose: true  },\n  sup: { classification: 'business', label: 'Постачальник',    ask_purpose: false },\n  per: { classification: 'personal', label: 'Особисте',        ask_purpose: false }\n};\n\nif (u.callback_query) {\n  const cq = u.callback_query;\n  const m = /^c:(\\d+):(est|job|sup|per)$/.exec(cq.data || '');\n  if (!m) return [{ json: { kind: 'other' } }];\n  const a = ACTION[m[2]];\n  return [{ json: {\n    kind: 'callback',\n    callback_query_id: cq.id,\n    tg_user_id: cq.from && cq.from.id,\n    tg_user_name: [cq.from && cq.from.first_name, cq.from && cq.from.last_name].filter(Boolean).join(' '),\n    chat_id: cq.message && cq.message.chat && cq.message.chat.id,\n    message_id: cq.message && cq.message.message_id,\n    original_text: (cq.message && cq.message.text) || '',\n    trip_id: Number(m[1]),\n    classification: a.classification,\n    action_label: a.label,\n    ask_purpose: a.ask_purpose\n  } }];\n}\n\nconst msg = u.message || u.edited_message;\nif (!msg) return [{ json: { kind: 'other' } }];\n\nconst base = {\n  tg_user_id: msg.from && msg.from.id,\n  chat_id: msg.chat && msg.chat.id,\n  message_id: msg.message_id,\n  taken_at: new Date((msg.date || 0) * 1000).toISOString()\n};\n\n// Відповідь на картку поїздки = мета цієї поїздки\nif (msg.reply_to_message && msg.text) {\n  return [{ json: { ...base, kind: 'purpose',\n                    reply_to_message_id: msg.reply_to_message.message_id,\n                    purpose: msg.text.trim().slice(0, 300) } }];\n}\n\n// Фото: беремо найбільший варіант\nif (Array.isArray(msg.photo) && msg.photo.length) {\n  const best = msg.photo[msg.photo.length - 1];\n  const cap = (msg.caption || '').toLowerCase();\n  let kind = 'site';\n  if (/одометр|odometer|пробіг/.test(cap)) kind = 'odometer';\n  else if (/чек|receipt|пальн|fuel/.test(cap)) kind = 'receipt';\n  return [{ json: { ...base, kind: 'photo', photo_kind: kind,\n                    file_id: best.file_id, caption: msg.caption || null } }];\n}\n\nreturn [{ json: { ...base, kind: 'other' } }];"
+      },
+      "id": "b-parse",
+      "name": "Розбір оновлення",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [0, 300]
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            { "conditions": { "options": { "caseSensitive": true, "version": 2 }, "combinator": "and",
+              "conditions": [ { "leftValue": "={{ $json.kind }}", "rightValue": "callback",
+                "operator": { "type": "string", "operation": "equals" } } ] }, "outputKey": "callback" },
+            { "conditions": { "options": { "caseSensitive": true, "version": 2 }, "combinator": "and",
+              "conditions": [ { "leftValue": "={{ $json.kind }}", "rightValue": "purpose",
+                "operator": { "type": "string", "operation": "equals" } } ] }, "outputKey": "purpose" },
+            { "conditions": { "options": { "caseSensitive": true, "version": 2 }, "combinator": "and",
+              "conditions": [ { "leftValue": "={{ $json.kind }}", "rightValue": "photo",
+                "operator": { "type": "string", "operation": "equals" } } ] }, "outputKey": "photo" }
+          ]
+        },
+        "options": { "fallbackOutput": "none" }
+      },
+      "id": "b-switch",
+      "name": "Тип події",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [220, 300]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "UPDATE fleet.trips t\n   SET classification = $1,\n       classified_by  = 'driver',\n       classified_at  = now(),\n       driver_id      = fleet.driver_for_tap(t.vehicle_id, $2::bigint, t.started_at),\n       review_flag    = false\n WHERE t.id = $3::bigint\nRETURNING t.id,\n          t.classification,\n          (SELECT label FROM fleet.drivers WHERE id = t.driver_id) AS driver_label,\n          EXISTS (SELECT 1 FROM fleet.driver_accounts WHERE telegram_user_id = $2::bigint) AS account_known;",
+        "options": { "queryReplacement": "={{ $json.classification }},{{ $json.tg_user_id }},{{ $json.trip_id }}" }
+      },
+      "id": "b-classify",
+      "name": "Записати класифікацію",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [460, 140],
+      "credentials": { "postgres": { "id": "fleetdbfleetrw01", "name": "Fleet DB (fleet_rw)" } }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Підтвердження у картці + підказка, що робити далі\nconst src = $('Розбір оновлення').first().json;\nconst db  = $input.first().json || {};\n\nconst mark = db.classification === 'personal' ? '🏠' : '💼';\nconst lines = [\n  src.original_text,\n  '',\n  `${mark} <b>${src.action_label}</b> · ${db.driver_label || '—'}`\n];\nif (src.ask_purpose) lines.push('<i>Відповідь на це повідомлення = мета поїздки</i>');\nif (db.account_known === false) {\n  lines.push(`<i>Акаунт ${src.tg_user_name || src.tg_user_id} ще не привʼязаний до водія — скажи Роману.</i>`);\n}\n\nreturn [{ json: {\n  chat_id: src.chat_id,\n  message_id: src.message_id,\n  callback_query_id: src.callback_query_id,\n  toast: src.ask_purpose ? 'Записано. Додай мету відповіддю.' : 'Записано.',\n  new_text: lines.join('\\n')\n} }];"
+      },
+      "id": "b-confirm",
+      "name": "Текст підтвердження",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [680, 140]
+    },
+    {
+      "parameters": {
+        "resource": "callback",
+        "operation": "answerQuery",
+        "queryId": "={{ $json.callback_query_id }}",
+        "additionalFields": { "text": "={{ $json.toast }}" }
+      },
+      "id": "b-answer",
+      "name": "Прибрати годинник",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [900, 140],
+      "credentials": { "telegramApi": { "id": "fleettelegrambot1", "name": "ROTES Logbook Bot" } }
+    },
+    {
+      "parameters": {
+        "operation": "editMessageText",
+        "chatId": "={{ $('Текст підтвердження').item.json.chat_id }}",
+        "messageId": "={{ $('Текст підтвердження').item.json.message_id }}",
+        "text": "={{ $('Текст підтвердження').item.json.new_text }}",
+        "additionalFields": { "parse_mode": "HTML" }
+      },
+      "id": "b-edit",
+      "name": "Оновити картку",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [1120, 140],
+      "credentials": { "telegramApi": { "id": "fleettelegrambot1", "name": "ROTES Logbook Bot" } }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "UPDATE fleet.trips SET purpose = $1\n WHERE telegram_message_id = $2::bigint\nRETURNING id, purpose;",
+        "options": { "queryReplacement": "={{ $json.purpose }},{{ $json.reply_to_message_id }}" }
+      },
+      "id": "b-purpose",
+      "name": "Записати мету",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [460, 320],
+      "alwaysOutputData": true,
+      "credentials": { "postgres": { "id": "fleetdbfleetrw01", "name": "Fleet DB (fleet_rw)" } }
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('Розбір оновлення').item.json.chat_id }}",
+        "text": "={{ $json.id ? '✍️ Мета записана.' : '⚠️ Не знайшов поїздку для цієї відповіді.' }}",
+        "additionalFields": { "reply_to_message_id": "={{ $('Розбір оновлення').item.json.message_id }}", "appendAttribution": false }
+      },
+      "id": "b-purpose-ok",
+      "name": "Підтвердити мету",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [680, 320],
+      "credentials": { "telegramApi": { "id": "fleettelegrambot1", "name": "ROTES Logbook Bot" } }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO fleet.photos (kind, taken_at, telegram_file_id, from_tg_user_id, driver_id, trip_id, note)\nSELECT $1, $2::timestamptz, $3, $4::bigint,\n       (SELECT driver_id FROM fleet.driver_accounts WHERE telegram_user_id = $4::bigint),\n       fleet.trip_at((SELECT id FROM fleet.vehicles ORDER BY id LIMIT 1), $2::timestamptz),\n       $5\n  ON CONFLICT (telegram_file_id) DO NOTHING\nRETURNING id, trip_id;",
+        "options": { "queryReplacement": "={{ $json.photo_kind }},{{ $json.taken_at }},{{ $json.file_id }},{{ $json.tg_user_id }},{{ $json.caption }}" }
+      },
+      "id": "b-photo",
+      "name": "Зберегти фото",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [460, 500],
+      "alwaysOutputData": true,
+      "credentials": { "postgres": { "id": "fleetdbfleetrw01", "name": "Fleet DB (fleet_rw)" } }
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('Розбір оновлення').item.json.chat_id }}",
+        "text": "={{ $json.trip_id ? '📷 Фото прийнято і привʼязано до поїздки.' : '📷 Фото прийнято. Поїздку за часом не знайшов — привʼяжу, коли синхронізація підтягне трек.' }}",
+        "additionalFields": { "reply_to_message_id": "={{ $('Розбір оновлення').item.json.message_id }}", "appendAttribution": false }
+      },
+      "id": "b-photo-ok",
+      "name": "Підтвердити фото",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [680, 500],
+      "credentials": { "telegramApi": { "id": "fleettelegrambot1", "name": "ROTES Logbook Bot" } }
+    }
+  ],
+  "connections": {
+    "Telegram Webhook":      { "main": [[{ "node": "Розбір оновлення", "type": "main", "index": 0 }]] },
+    "Розбір оновлення":      { "main": [[{ "node": "Тип події", "type": "main", "index": 0 }]] },
+    "Тип події":             { "main": [
+                                 [{ "node": "Записати класифікацію", "type": "main", "index": 0 }],
+                                 [{ "node": "Записати мету", "type": "main", "index": 0 }],
+                                 [{ "node": "Зберегти фото", "type": "main", "index": 0 }]
+                               ] },
+    "Записати класифікацію": { "main": [[{ "node": "Текст підтвердження", "type": "main", "index": 0 }]] },
+    "Текст підтвердження":   { "main": [[{ "node": "Прибрати годинник", "type": "main", "index": 0 }]] },
+    "Прибрати годинник":     { "main": [[{ "node": "Оновити картку", "type": "main", "index": 0 }]] },
+    "Записати мету":         { "main": [[{ "node": "Підтвердити мету", "type": "main", "index": 0 }]] },
+    "Зберегти фото":         { "main": [[{ "node": "Підтвердити фото", "type": "main", "index": 0 }]] }
+  },
+  "settings": { "executionOrder": "v1", "errorWorkflow": "FleetErrorHandl1" },
+  "active": false
+}
