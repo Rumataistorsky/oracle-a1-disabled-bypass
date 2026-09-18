@@ -1,5 +1,4 @@
 {
-  "id": "FleetBotWebhook1",
   "name": "Fleet — Bot Webhook (logbook)",
   "nodes": [
     {
@@ -279,7 +278,7 @@
     {
       "parameters": {
         "chatId": "={{ $('Розбір оновлення').item.json.chat_id }}",
-        "text": "={{ $json.trip_id ? '📷 Фото прийнято і привʼязано до поїздки.' : '📷 Фото прийнято. Поїздку за часом не знайшов — привʼяжу, коли синхронізація підтягне трек.' }}",
+        "text": "={{ $('Зберегти фото').item.json.trip_id ? '📷 Фото прийнято і привʼязано до поїздки.' : '📷 Фото прийнято. Поїздку за часом не знайшов — привʼяжу, коли синхронізація підтягне трек.' }}",
         "additionalFields": {
           "reply_to_message_id": "={{ $('Розбір оновлення').item.json.message_id }}",
           "appendAttribution": false
@@ -290,13 +289,82 @@
       "type": "n8n-nodes-base.telegram",
       "typeVersion": 1.2,
       "position": [
-        680,
-        500
+        1340,
+        620
       ],
       "credentials": {
         "telegramApi": {
           "id": "fleettelegrambot1",
           "name": "ROTES Logbook Bot"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "file",
+        "operation": "get",
+        "fileId": "={{ $('Розбір оновлення').item.json.file_id }}",
+        "download": true,
+        "additionalFields": {}
+      },
+      "id": "b-photo-dl",
+      "name": "Завантажити з Telegram",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        680,
+        620
+      ],
+      "credentials": {
+        "telegramApi": {
+          "id": "fleettelegrambot1",
+          "name": "ROTES Logbook Bot"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "file",
+        "operation": "upload",
+        "path": "={{ '/Fleet/Logbook/photos/' + $now.setZone('America/Moncton').toFormat('yyyy-MM-dd') + '_' + $('Зберегти фото').item.json.id + '.jpg' }}",
+        "binaryDataUpload": true,
+        "binaryPropertyName": "data"
+      },
+      "id": "b-photo-nc",
+      "name": "Вивантажити в Nextcloud",
+      "type": "n8n-nodes-base.nextCloud",
+      "typeVersion": 1,
+      "position": [
+        900,
+        620
+      ],
+      "credentials": {
+        "nextCloudApi": {
+          "id": "fleetnextcloud01",
+          "name": "Nextcloud (fleet photos)"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "UPDATE fleet.photos SET storage_url = $1 WHERE id = $2::int RETURNING id, trip_id;",
+        "options": {
+          "queryReplacement": "={{ '/Fleet/Logbook/photos/' + $now.setZone('America/Moncton').toFormat('yyyy-MM-dd') + '_' + $('Зберегти фото').item.json.id + '.jpg' }},{{ $('Зберегти фото').item.json.id }}"
+        }
+      },
+      "id": "b-photo-url",
+      "name": "Записати storage_url",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        1120,
+        620
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "fleetdbfleetrw01",
+          "name": "Fleet DB (fleet_rw)"
         }
       }
     }
@@ -397,6 +465,39 @@
       "main": [
         [
           {
+            "node": "Завантажити з Telegram",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Завантажити з Telegram": {
+      "main": [
+        [
+          {
+            "node": "Вивантажити в Nextcloud",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Вивантажити в Nextcloud": {
+      "main": [
+        [
+          {
+            "node": "Записати storage_url",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Записати storage_url": {
+      "main": [
+        [
+          {
             "node": "Підтвердити фото",
             "type": "main",
             "index": 0
@@ -408,6 +509,5 @@
   "settings": {
     "executionOrder": "v1",
     "errorWorkflow": "FleetErrorHandl1"
-  },
-  "active": false
+  }
 }
