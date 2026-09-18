@@ -159,6 +159,29 @@
         }
       },
       "notes": "operation=upsert обовʼязковий. За замовчуванням нода робить insert, і другий прогін падає на unique-constraint traccar_trip_key: вікно вибірки 48 год, тож ті самі поїздки приходять щогодини."
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "-- Фото з обʼєкта роблять після приїзду, тож привʼязуємо його до поїздки,\n-- яка щойно туди привезла: остання поїздка, що закінчилася до знімка, у межах\n-- чотирьох годин. Бот обіцяє цю привʼязку одразу після прийому фото, але в\n-- момент знімка треку ще немає — Traccar нарізає поїздку лише після стоянки.\nWITH m AS (\n  SELECT p.id AS photo_id,\n         (SELECT t.id\n            FROM fleet.trips t\n           WHERE t.vehicle_id = p_v.id\n             AND t.ended_at <= p.taken_at\n             AND p.taken_at - t.ended_at < interval '4 hours'\n           ORDER BY t.ended_at DESC\n           LIMIT 1) AS trip_id\n    FROM fleet.photos p\n    CROSS JOIN LATERAL (SELECT id FROM fleet.vehicles ORDER BY id LIMIT 1) p_v\n   WHERE p.trip_id IS NULL\n)\nUPDATE fleet.photos p\n   SET trip_id = m.trip_id\n  FROM m\n WHERE m.photo_id = p.id\n   AND m.trip_id IS NOT NULL\nRETURNING p.id, p.trip_id;",
+        "options": {}
+      },
+      "id": "n-linkphotos",
+      "name": "Привʼязати фото",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        980,
+        380
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "fleetdbfleetrw01",
+          "name": "Fleet DB (fleet_rw)"
+        }
+      },
+      "alwaysOutputData": true,
+      "notes": "Виконує обіцянку бота: фото, зроблене до появи треку, підхоплює поїздку після синхронізації."
     }
   ],
   "connections": {
@@ -211,6 +234,17 @@
         [
           {
             "node": "Upsert Trips",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Upsert Trips": {
+      "main": [
+        [
+          {
+            "node": "Привʼязати фото",
             "type": "main",
             "index": 0
           }
