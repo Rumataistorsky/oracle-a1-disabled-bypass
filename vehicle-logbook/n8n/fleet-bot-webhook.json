@@ -289,8 +289,8 @@
       "type": "n8n-nodes-base.telegram",
       "typeVersion": 1.2,
       "position": [
-        1340,
-        620
+        1560,
+        500
       ],
       "credentials": {
         "telegramApi": {
@@ -312,8 +312,8 @@
       "type": "n8n-nodes-base.telegram",
       "typeVersion": 1.2,
       "position": [
-        680,
-        620
+        900,
+        500
       ],
       "credentials": {
         "telegramApi": {
@@ -335,8 +335,8 @@
       "type": "n8n-nodes-base.nextCloud",
       "typeVersion": 1,
       "position": [
-        900,
-        620
+        1120,
+        500
       ],
       "credentials": {
         "nextCloudApi": {
@@ -358,8 +358,8 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        1120,
-        620
+        1340,
+        500
       ],
       "credentials": {
         "postgres": {
@@ -367,6 +367,19 @@
           "name": "Fleet DB (fleet_rw)"
         }
       }
+    },
+    {
+      "parameters": {
+        "jsCode": "// ON CONFLICT DO NOTHING на дублі file_id віддає 0 рядків, але alwaysOutputData\n// у 'Зберегти фото' все одно шле далі порожній item — інакше вся гілка обривається\n// ще на INSERT і 'Підтвердити фото' взагалі не спрацьовує. Тут явно перевіряємо:\n// id є — це новий запис, ведемо його на завантаження й Nextcloud; id немає — дубль,\n// нічого не тягнемо і нічого не пишемо, це правильна поведінка.\nconst it = $input.first();\nif (!it || it.json.id == null) return [];\nreturn [it];"
+      },
+      "id": "b-photo-new",
+      "name": "Є новий запис?",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        680,
+        500
+      ]
     }
   ],
   "connections": {
@@ -465,7 +478,7 @@
       "main": [
         [
           {
-            "node": "Завантажити з Telegram",
+            "node": "Є новий запис?",
             "type": "main",
             "index": 0
           }
@@ -499,6 +512,17 @@
         [
           {
             "node": "Підтвердити фото",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Є новий запис?": {
+      "main": [
+        [
+          {
+            "node": "Завантажити з Telegram",
             "type": "main",
             "index": 0
           }
