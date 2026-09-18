@@ -380,6 +380,46 @@
         680,
         500
       ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Гілка для чеків: далі йде лише те, що водій підписав/розпізнав як чек.\n// Все інше (фото обʼєкта, одометра) сюди не заходить — receipt-bot на LXC 414\n// сам розпізнає вміст через ROG vision, дублювати цю класифікацію не треба.\nconst kind = $('Розбір оновлення').item.json.photo_kind;\nif (kind !== 'receipt') return [];\nreturn $input.all();"
+      },
+      "id": "b-receipt-check",
+      "name": "Це чек?",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        900,
+        700
+      ]
+    },
+    {
+      "parameters": {
+        "authentication": "privateKey",
+        "resource": "file",
+        "operation": "upload",
+        "path": "/mnt/fileshare/scan_inbox/Rotes_receipts",
+        "binaryPropertyName": "data",
+        "options": {
+          "fileName": "={{ 'TGFleet_' + $('Розбір оновлення').item.json.taken_at.replace(/[-:TZ.]/g, '').slice(2, 14) + '_' + $('Зберегти фото').item.json.id + '.jpg' }}"
+        }
+      },
+      "id": "b-receipt-ssh",
+      "name": "Відправити у scan_inbox",
+      "type": "n8n-nodes-base.ssh",
+      "typeVersion": 1,
+      "position": [
+        1120,
+        700
+      ],
+      "credentials": {
+        "sshPrivateKey": {
+          "id": "pveSshKey01",
+          "name": "PVE SSH Key"
+        }
+      },
+      "notes": "Той самий /mnt/fileshare/scan_inbox/Rotes_receipts, який слідкує receipt-bot.js на LXC 414 (systemd agent-bot.service) — watchdog кожні 30с приймає будь-який .jpg/.png/.pdf/.heic незалежно від імені. Ім'я файлу навмисно повторює формат Canon NNNN_YYMMDDHHMMSS_NNN — за ним receipt-bot звіряє рік/дату, розпізнані ROG vision, проти дати самого сканування (захист від галюцинованого року). Далі повністю штатний пайплайн: ROG qwen2.5vl → CRA-категорія → перейменування → Google Drive → таблиця 'bils' → Telegram FYI. Дублі (та сама сума + день/магазин) бот сам відсіює."
     }
   ],
   "connections": {
@@ -492,6 +532,11 @@
             "node": "Вивантажити в Nextcloud",
             "type": "main",
             "index": 0
+          },
+          {
+            "node": "Це чек?",
+            "type": "main",
+            "index": 0
           }
         ]
       ]
@@ -523,6 +568,17 @@
         [
           {
             "node": "Завантажити з Telegram",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Це чек?": {
+      "main": [
+        [
+          {
+            "node": "Відправити у scan_inbox",
             "type": "main",
             "index": 0
           }
