@@ -1,0 +1,270 @@
+{
+  "id": "FleetGeocodeAdr1",
+  "name": "Fleet — Geocode Addresses (logbook)",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "12 * * * *"
+            }
+          ]
+        }
+      },
+      "id": "g-sched",
+      "name": "Щогодини +12хв",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -320,
+        300
+      ],
+      "notes": "5 хв після Fleet — Sync Trips (Hourly), щоб адреси вже були записані як координати перед геокодуванням."
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT id, origin_address, destination_address FROM fleet.trips\n  WHERE origin_address ~ '^-?[0-9]+\\.[0-9]+, *-?[0-9]+\\.[0-9]+$'\n     OR destination_address ~ '^-?[0-9]+\\.[0-9]+, *-?[0-9]+\\.[0-9]+$'\n  LIMIT 20;",
+        "options": {}
+      },
+      "id": "g-select",
+      "name": "Знайти координати",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        -100,
+        300
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "fleetdbfleetrw01",
+          "name": "Fleet DB (fleet_rw)"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Кожен рядок може мати координати в origin, destination, або обох —\n// розкладаємо на окремі завдання геокодування по одному на поле.\n// Зони (HOME-OFFICE, CLIENT-*, SUPPLIER-*) сюди не потрапляють: SQL-фільтр\n// у попередній ноді пропускає все, що не виглядає як \"лат, лон\".\nconst COORD = /^(-?\\d+\\.\\d+),\\s*(-?\\d+\\.\\d+)$/;\nconst out = [];\nfor (const item of $input.all()) {\n  const row = item.json;\n  for (const field of ['origin_address', 'destination_address']) {\n    const m = COORD.exec((row[field] || '').trim());\n    if (m) out.push({ json: { trip_id: row.id, field, lat: m[1], lon: m[2] } });\n  }\n}\nreturn out;"
+      },
+      "id": "g-tasks",
+      "name": "Розкласти на завдання",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        120,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "batchSize": 1,
+        "options": {}
+      },
+      "id": "g-loop",
+      "name": "Loop Over Items",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        340,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "url": "https://nominatim.openstreetmap.org/reverse",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "format",
+              "value": "jsonv2"
+            },
+            {
+              "name": "lat",
+              "value": "={{ $json.lat }}"
+            },
+            {
+              "name": "lon",
+              "value": "={{ $json.lon }}"
+            },
+            {
+              "name": "zoom",
+              "value": "18"
+            }
+          ]
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "User-Agent",
+              "value": "ROTES-Fleet-Logbook/1.0 (roman.tesla.ca@gmail.com)"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "g-nominatim",
+      "name": "Nominatim Reverse",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        560,
+        220
+      ],
+      "onError": "continueRegularOutput",
+      "alwaysOutputData": true,
+      "notes": "User-Agent обовʼязковий за usage policy Nominatim, інакше блокують за замовчуванням."
+    },
+    {
+      "parameters": {
+        "resume": "timeInterval",
+        "amount": 1.2,
+        "unit": "seconds"
+      },
+      "id": "g-wait",
+      "name": "Пауза (rate limit)",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        780,
+        220
+      ],
+      "notes": "≥1с між запитами до Nominatim — правило використання публічного інстансу."
+    },
+    {
+      "parameters": {
+        "jsCode": "// Короткий рядок для картки: номер+вулиця, район. Повний display_name\n// із Nominatim задовгий і містить зайве (місто/провінція/індекс/країна).\n// Без номера будинку OSM повертає лише вулицю — це все одно краще за\n// голі координати, але саме вулицю, а не випадкову сусідню будівлю.\nconst req = $('Розкласти на завдання').item.json;\nconst addr = ($json && $json.address) || {};\n\nconst parts = [];\nif (addr.house_number && addr.road) parts.push(`${addr.house_number} ${addr.road}`);\nelse if (addr.road) parts.push(addr.road);\n\nconst suburb = addr.suburb || addr.village || addr.town || addr.city_district || addr.neighbourhood;\nif (suburb) parts.push(suburb);\n\nreturn [{ json: {\n  trip_id: req.trip_id,\n  field: req.field,\n  short_address: parts.length ? parts.join(', ') : null\n} }];"
+      },
+      "id": "g-shorten",
+      "name": "Скоротити адресу",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1000,
+        220
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "={{ $json.short_address ? ('UPDATE fleet.trips SET ' + $json.field + ' = REPLACE($1, chr(1), \\',\\') WHERE id = $2::bigint;') : 'SELECT 1;' }}",
+        "options": {
+          "queryReplacement": "={{ ($json.short_address || '').split(',').join(String.fromCharCode(1)) }},{{ $json.trip_id }}"
+        }
+      },
+      "id": "g-update",
+      "name": "Записати адресу",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        1220,
+        220
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "fleetdbfleetrw01",
+          "name": "Fleet DB (fleet_rw)"
+        }
+      },
+      "notes": "field береться лише зі 'Розкласти на завдання' (фіксовані origin_address/destination_address), не з відповіді Nominatim — SQL-інʼєкція через це неможлива. Якщо адреси не знайдено — SELECT 1 як no-op, координати лишаються, спроба повториться наступного разу. Коми в адресі екрановані через chr(1) перед біндингом і відновлені в SQL через REPLACE — інакше n8n Postgres-нода ріже queryReplacement по КОЖНІЙ комі в значенні, зсуваючи параметри ($1/$2 плутаються)."
+    }
+  ],
+  "connections": {
+    "Щогодини +12хв": {
+      "main": [
+        [
+          {
+            "node": "Знайти координати",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Знайти координати": {
+      "main": [
+        [
+          {
+            "node": "Розкласти на завдання",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Розкласти на завдання": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Over Items": {
+      "main": [
+        [],
+        [
+          {
+            "node": "Nominatim Reverse",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Nominatim Reverse": {
+      "main": [
+        [
+          {
+            "node": "Пауза (rate limit)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Пауза (rate limit)": {
+      "main": [
+        [
+          {
+            "node": "Скоротити адресу",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Скоротити адресу": {
+      "main": [
+        [
+          {
+            "node": "Записати адресу",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Записати адресу": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "errorWorkflow": "FleetErrorHandl1"
+  }
+}
