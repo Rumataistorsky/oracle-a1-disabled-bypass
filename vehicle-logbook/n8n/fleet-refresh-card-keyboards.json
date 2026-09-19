@@ -1,0 +1,176 @@
+{
+  "id": "TmpRefreshKbd01",
+  "name": "Fleet — Refresh Card Keyboards (logbook)",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "t-man",
+      "name": "Запустити",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1,
+      "position": [
+        -200,
+        300
+      ],
+      "notes": "Запускати вручну після зміни набору кнопок. Картки, вже надіслані в Telegram, несуть стару клавіатуру назавжди - Telegram не оновлює її сам. Цей воркфлоу перемальовує кнопки на місці, щоб не сипати в чат дублі карток."
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT t.id AS trip_id,\n       t.telegram_message_id,\n       to_char(t.started_at AT TIME ZONE 'America/Moncton','DD.MM HH24:MI') AS start_local,\n       to_char(t.ended_at   AT TIME ZONE 'America/Moncton','HH24:MI')       AS end_local,\n       t.distance_km, t.origin_address, t.destination_address, t.review_reason,\n       (SELECT chat_id FROM fleet.drivers WHERE role='owner' AND active LIMIT 1) AS chat_id\nFROM fleet.trips t\nWHERE t.telegram_message_id IS NOT NULL\n  AND t.classification = 'unclassified'\n  AND t.started_at > now() - interval '7 days'\nORDER BY t.started_at;",
+        "options": {}
+      },
+      "id": "t-q",
+      "name": "Картки без типу",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        20,
+        300
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "fleetdbfleetrw01",
+          "name": "Fleet DB (fleet_rw)"
+        }
+      },
+      "notes": "Лише ті, де ще бракує типу: там клавіатура має значення. Поїздки, які водій уже розібрав, не чіпаємо - редагування стерло б підтвердження в тексті картки."
+    },
+    {
+      "parameters": {
+        "jsCode": "// Той самий текст, що й у post-cards — картку лише перемальовуємо, а не\n// переписуємо: вміст має лишитися впізнаваним, змінюється тільки клавіатура.\nconst COORD = /^\\s*(-?\\d+\\.\\d+)\\s*,\\s*(-?\\d+\\.\\d+)\\s*$/;\nfunction place(value) {\n  const m = COORD.exec(String(value || ''));\n  if (!m) return value;\n  const [, lat, lon] = m;\n  return `<a href=\"https://maps.google.com/?q=${lat},${lon}\">📍 точка на карті</a>`;\n}\nreturn $input.all().map(i => {\n  const t = i.json;\n  const km = Number(t.distance_km).toFixed(1);\n  const lines = [\n    `🚐 <b>${t.start_local} → ${t.end_local}</b> · ${km} км`,\n    `${place(t.origin_address)} → ${place(t.destination_address)}`\n  ];\n  if (t.review_reason) lines.push(`⚠️ ${t.review_reason}`);\n  lines.push('👇 <i>Обери тип поїздки кнопкою нижче.</i>');\n  return { json: { ...t, card_text: lines.join('\\n') } };\n});"
+      },
+      "id": "t-b",
+      "name": "Текст картки",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        240,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "editMessageText",
+        "chatId": "={{ $json.chat_id }}",
+        "messageId": "={{ $json.telegram_message_id }}",
+        "text": "={{ $json.card_text }}",
+        "replyMarkup": "inlineKeyboard",
+        "inlineKeyboard": {
+          "rows": [
+            {
+              "row": {
+                "buttons": [
+                  {
+                    "text": "Оцінка/замір",
+                    "additionalFields": {
+                      "callback_data": "=c:{{ $json.trip_id }}:est"
+                    }
+                  },
+                  {
+                    "text": "Обʼєкт у роботі",
+                    "additionalFields": {
+                      "callback_data": "=c:{{ $json.trip_id }}:job"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "row": {
+                "buttons": [
+                  {
+                    "text": "Зустріч",
+                    "additionalFields": {
+                      "callback_data": "=c:{{ $json.trip_id }}:mtg"
+                    }
+                  },
+                  {
+                    "text": "Постачальник",
+                    "additionalFields": {
+                      "callback_data": "=c:{{ $json.trip_id }}:sup"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "row": {
+                "buttons": [
+                  {
+                    "text": "Інше по роботі",
+                    "additionalFields": {
+                      "callback_data": "=c:{{ $json.trip_id }}:oth"
+                    }
+                  },
+                  {
+                    "text": "Особисте",
+                    "additionalFields": {
+                      "callback_data": "=c:{{ $json.trip_id }}:per"
+                    }
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        "additionalFields": {
+          "parse_mode": "HTML"
+        }
+      },
+      "id": "t-e",
+      "name": "Перемалювати",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        460,
+        300
+      ],
+      "credentials": {
+        "telegramApi": {
+          "id": "fleettelegrambot1",
+          "name": "ROTES Logbook Bot"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Запустити": {
+      "main": [
+        [
+          {
+            "node": "Картки без типу",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Картки без типу": {
+      "main": [
+        [
+          {
+            "node": "Текст картки",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Текст картки": {
+      "main": [
+        [
+          {
+            "node": "Перемалювати",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "active": false
+}

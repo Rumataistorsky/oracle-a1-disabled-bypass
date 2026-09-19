@@ -15,10 +15,15 @@
 
 * **Оцінка/замір** — їздив дивитись роботу, яку ще не робимо
 * **Обʼєкт у роботі** — їздив на активний обʼєкт
+* **Зустріч** — із замовником чи субпідрядником. Байдуже де: кафе,
+  парковка, чужий офіс. Місце не має значення, важлива причина
 * **Постачальник** — магазин, склад, матеріали
+* **Інше по роботі** — банк, пошта, сервіс, будь-що робоче, що не підійшло вище
 * **Особисте** — будь-яка поїздка не по роботі
 
-Якщо вибрав перші дві — бот попросить один рядок «що саме».
+Усе, крім «Постачальник» і «Особисте», бот перепитає одним рядком.
+Питання залежить від кнопки: після зустрічі — **«з ким і про що»**,
+після обʼєкта — **«який обʼєкт і що робили»**.
 Пиши конкретно: **«замір — заміна покрівлі»**, а не «робота».
 Це поле читає податкова.
 
@@ -61,10 +66,15 @@ The bot sends you cards for the day. Tap one button per trip:
 
 * **Estimate / site visit** — went to look at work we haven't started
 * **Active job site** — went to a job we're working on
+* **Meeting** — with a client or a contractor. Anywhere: a café, a parking
+  lot, someone else's office. The place doesn't matter, the reason does
 * **Supplier** — store, yard, materials
+* **Other work trip** — bank, post office, service shop, anything else on the job
 * **Personal** — anything not work
 
-For the first two, the bot asks one line: *what exactly*.
+Everything except *Supplier* and *Personal* gets one follow-up line.
+The question depends on the button: after a meeting — **who with and what about**,
+after a job site — **which site and what you did**.
 Be specific: **"estimate — roof replacement"**, not "work".
 The tax authority reads this field.
 
