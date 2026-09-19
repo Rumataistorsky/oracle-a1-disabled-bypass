@@ -208,7 +208,7 @@
         "operation": "executeQuery",
         "query": "UPDATE fleet.trips SET purpose = $1\n WHERE telegram_message_id = $2::bigint\nRETURNING id, purpose;",
         "options": {
-          "queryReplacement": "={{ $json.purpose }},{{ $json.reply_to_message_id }}"
+          "queryReplacement": "={{ [ $json.purpose, $json.reply_to_message_id ] }}"
         }
       },
       "id": "b-purpose",
@@ -225,7 +225,8 @@
           "id": "fleetdbfleetrw01",
           "name": "Fleet DB (fleet_rw)"
         }
-      }
+      },
+      "notes": "Масив, а не рядок через кому: мета майже завжди містить кому (\"замір, прорахунок\"), і n8n розрізав би її на два параметри."
     },
     {
       "parameters": {

@@ -25,7 +25,7 @@
     {
       "parameters": {
         "operation": "executeQuery",
-        "query": "SELECT t.id AS trip_id,\n       to_char(t.started_at AT TIME ZONE 'America/Moncton','DD.MM HH24:MI') AS start_local,\n       to_char(t.ended_at   AT TIME ZONE 'America/Moncton','HH24:MI')       AS end_local,\n       t.distance_km, t.origin_address, t.destination_address,\n       t.review_reason,\n       (SELECT chat_id FROM fleet.drivers WHERE role='owner' AND active LIMIT 1) AS chat_id\nFROM fleet.trips t\nWHERE t.classification = 'unclassified'\n  AND t.telegram_message_id IS NULL\n  AND t.started_at > now() - interval '7 days'\nORDER BY t.started_at\nLIMIT 20;",
+        "query": "-- Картка потрібна не лише для нерозпізнаних поїздок. Бізнес-поїздка без мети\n-- так само неповна для CRA, а досі вона не потрапляла нікуди: класифікація вже\n-- стояла, тож картки не було, і вписати мету не було куди. Watchdog рахував такі\n-- поїздки, і число росло без жодного способу його зменшити.\nSELECT t.id AS trip_id,\n       to_char(t.started_at AT TIME ZONE 'America/Moncton','DD.MM HH24:MI') AS start_local,\n       to_char(t.ended_at   AT TIME ZONE 'America/Moncton','HH24:MI')       AS end_local,\n       t.distance_km, t.origin_address, t.destination_address,\n       t.review_reason,\n       CASE WHEN t.classification = 'unclassified' THEN 'class' ELSE 'purpose' END AS need,\n       (SELECT chat_id FROM fleet.drivers WHERE role='owner' AND active LIMIT 1) AS chat_id\nFROM fleet.trips t\nWHERE t.telegram_message_id IS NULL\n  AND t.started_at > now() - interval '7 days'\n  AND (t.classification = 'unclassified'\n       OR (t.classification = 'business' AND (t.purpose IS NULL OR btrim(t.purpose) = '')))\nORDER BY t.started_at\nLIMIT 20;",
         "options": {}
       },
       "id": "p-query",
@@ -47,7 +47,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// Текст картки. Коротко: водій читає це з телефона за кермом або одразу після.\n// Якщо точки немає серед geofence, у полі лежать голі координати. Самі по собі\n// вони водієві нічого не кажуть, тому віддаємо посилання на карту: одне\n// натискання показує місце. Коли зворотне геокодування заповнить адресу,\n// сюди сама собою потрапить вулиця з номером.\nconst COORD = /^\\s*(-?\\d+\\.\\d+)\\s*,\\s*(-?\\d+\\.\\d+)\\s*$/;\n\nfunction place(value) {\n  const m = COORD.exec(String(value || ''));\n  if (!m) return value;                       // назва зони — лишаємо як є\n  const [, lat, lon] = m;\n  return `<a href=\"https://maps.google.com/?q=${lat},${lon}\">📍 точка на карті</a>`;\n}\n\nreturn $input.all().map(i => {\n  const t = i.json;\n  const km = Number(t.distance_km).toFixed(1);\n  const lines = [\n    `🚐 <b>${t.start_local} → ${t.end_local}</b> · ${km} км`,\n    `${place(t.origin_address)} → ${place(t.destination_address)}`\n  ];\n  if (t.review_reason) lines.push(`⚠️ ${t.review_reason}`);\n  return { json: { ...t, card_text: lines.join('\\n') } };\n});"
+        "jsCode": "// Текст картки. Водій читає це з телефона одразу після поїздки.\n// Якщо точки немає серед geofence, у полі лежать голі координати — віддаємо\n// посилання на карту, бо самі цифри водієві нічого не кажуть.\nconst COORD = /^\\s*(-?\\d+\\.\\d+)\\s*,\\s*(-?\\d+\\.\\d+)\\s*$/;\n\nfunction place(value) {\n  const m = COORD.exec(String(value || ''));\n  if (!m) return value;\n  const [, lat, lon] = m;\n  return `<a href=\"https://maps.google.com/?q=${lat},${lon}\">📍 точка на карті</a>`;\n}\n\nreturn $input.all().map(i => {\n  const t = i.json;\n  const km = Number(t.distance_km).toFixed(1);\n  const lines = [\n    `🚐 <b>${t.start_local} → ${t.end_local}</b> · ${km} км`,\n    `${place(t.origin_address)} → ${place(t.destination_address)}`\n  ];\n  if (t.review_reason) lines.push(`⚠️ ${t.review_reason}`);\n  // Головне у картці — сказати, чого саме бракує і якою дією це закрити.\n  lines.push(t.need === 'purpose'\n    ? '↩️ <i>Тип уже стоїть, бракує мети. Відповідь на це повідомлення = мета поїздки.</i>'\n    : '👇 <i>Обери тип поїздки кнопкою нижче.</i>');\n  return { json: { ...t, card_text: lines.join('\\n') } };\n});"
       },
       "id": "p-build",
       "name": "Текст картки",
@@ -62,7 +62,7 @@
       "parameters": {
         "chatId": "={{ $json.chat_id }}",
         "text": "={{ $json.card_text }}",
-        "replyMarkup": "inlineKeyboard",
+        "replyMarkup": "={{ $json.need === 'purpose' ? 'none' : 'inlineKeyboard' }}",
         "inlineKeyboard": {
           "rows": [
             {
@@ -121,7 +121,8 @@
           "id": "fleettelegrambot1",
           "name": "ROTES Logbook Bot"
         }
-      }
+      },
+      "notes": "Клавіатура лише там, де бракує типу. На вже класифікованій поїздці ті самі кнопки означали б «перекласифікуй», хоча потрібна мета — текстом у відповідь."
     },
     {
       "parameters": {
@@ -145,6 +146,18 @@
           "name": "Fleet DB (fleet_rw)"
         }
       }
+    },
+    {
+      "parameters": {},
+      "id": "p-manual",
+      "name": "Надіслати зараз",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1,
+      "position": [
+        -180,
+        460
+      ],
+      "notes": "Розсилка карток лише раз на добу означає, що поїздка о 20:30 чекає на питання майже добу, а до того часу водій уже не памʼятає, навіщо їздив. Цей вхід дає надіслати картки одразу - вручну або з іншого воркфлоу."
     }
   ],
   "connections": {
@@ -186,6 +199,17 @@
         [
           {
             "node": "Запамʼятати message_id",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Надіслати зараз": {
+      "main": [
+        [
+          {
+            "node": "Некласифіковані",
             "type": "main",
             "index": 0
           }

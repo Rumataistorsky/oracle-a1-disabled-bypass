@@ -208,6 +208,29 @@
       "executeOnce": true,
       "alwaysOutputData": true,
       "notes": "Без цього зміна фільтрів Traccar подвоює поїздки: новий нарізок дає новий traccar_trip_key, а старий рядок нікуди не дівається."
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "-- CRA вимагає мету КОЖНОЇ бізнес-поїздки. Але там, де призначення саме себе\n-- пояснює, питати водія - марна робота, від якої він перестає відповідати взагалі.\n-- Повернення в офіс і заїзд до постачальника описуються маршрутом однозначно,\n-- тож мету проставляємо самі. Поїздки до клієнта лишаються порожніми: замір,\n-- монтаж і зустріч виглядають у треку однаково, і вгадувати тут не можна.\nUPDATE fleet.trips\n   SET purpose = CASE\n         WHEN destination_address LIKE 'SUPPLIER-%' THEN 'закупівля у постачальника: ' || destination_address\n         WHEN destination_address = 'HOME-OFFICE'   THEN 'повернення в офіс'\n         WHEN destination_address LIKE 'SHOP-%'     THEN 'повернення у воркшоп'\n       END\n WHERE classification = 'business'\n   AND (purpose IS NULL OR btrim(purpose) = '')\n   AND (destination_address LIKE 'SUPPLIER-%'\n        OR destination_address = 'HOME-OFFICE'\n        OR destination_address LIKE 'SHOP-%')\nRETURNING id, purpose;",
+        "options": {}
+      },
+      "id": "n-autopurpose",
+      "name": "Проставити очевидну мету",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        1640,
+        380
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "fleetdbfleetrw01",
+          "name": "Fleet DB (fleet_rw)"
+        }
+      },
+      "alwaysOutputData": true,
+      "notes": "Знімає питання там, де маршрут сам є відповіддю. До клієнтів мету не вгадуємо."
     }
   ],
   "connections": {
@@ -282,6 +305,17 @@
         [
           {
             "node": "Прибрати застарілі",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Прибрати застарілі": {
+      "main": [
+        [
+          {
+            "node": "Проставити очевидну мету",
             "type": "main",
             "index": 0
           }
