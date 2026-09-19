@@ -150,9 +150,9 @@
     {
       "parameters": {
         "operation": "executeQuery",
-        "query": "={{ $json.short_address ? ('UPDATE fleet.trips SET ' + $json.field + ' = REPLACE($1, chr(1), \\',\\') WHERE id = $2::bigint;') : 'SELECT 1;' }}",
+        "query": "-- Назва колонки не підставляється в текст запиту: інакше довелося б\n-- будувати SQL рядком, а це відкриті двері для ін'єкції з адреси.\n-- Обидві колонки в одному UPDATE, потрібну обирає CASE за $3.\nUPDATE fleet.trips\n   SET origin_address      = CASE WHEN $3 = 'origin_address'      THEN $1 ELSE origin_address      END,\n       destination_address = CASE WHEN $3 = 'destination_address' THEN $1 ELSE destination_address END\n WHERE id = $2::bigint\n   AND $1 <> ''\nRETURNING id, origin_address, destination_address;",
         "options": {
-          "queryReplacement": "={{ ($json.short_address || '').split(',').join(String.fromCharCode(1)) }},{{ $json.trip_id }}"
+          "queryReplacement": "={{ [ $json.short_address || '', $json.trip_id, $json.field ] }}"
         }
       },
       "id": "g-update",
@@ -169,7 +169,7 @@
           "name": "Fleet DB (fleet_rw)"
         }
       },
-      "notes": "field береться лише зі 'Розкласти на завдання' (фіксовані origin_address/destination_address), не з відповіді Nominatim — SQL-інʼєкція через це неможлива. Якщо адреси не знайдено — SELECT 1 як no-op, координати лишаються, спроба повториться наступного разу. Коми в адресі екрановані через chr(1) перед біндингом і відновлені в SQL через REPLACE — інакше n8n Postgres-нода ріже queryReplacement по КОЖНІЙ комі в значенні, зсуваючи параметри ($1/$2 плутаються)."
+      "notes": "queryReplacement має бути ОДИН вираз-масив. Рядок через кому n8n розбиває по комах усередині значень, і адреса зсуває всі параметри."
     }
   ],
   "connections": {
