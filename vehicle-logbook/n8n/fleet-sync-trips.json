@@ -182,6 +182,32 @@
       },
       "alwaysOutputData": true,
       "notes": "Виконує обіцянку бота: фото, зроблене до появи треку, підхоплює поїздку після синхронізації."
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "-- Traccar - джерело істини для НАРІЗКИ поїздок у вікні вибірки.\n-- Коли змінюються фільтри (filter.accuracy, minimalNoDataDuration), той самий\n-- виїзд отримує інший час старту, а отже інший traccar_trip_key. Upsert додає\n-- новий рядок, старий лишається - і один виїзд рахується двічі. Саме так\n-- 16.09 замість 5.8 км показувало 11.1 км.\n--\n-- Тому все, що Traccar у цьому вікні вже не віддає, видаляємо. Але лише те,\n-- де немає людської праці: руками класифіковане, з метою, з карткою в\n-- Telegram або з привʼязаним фото лишається завжди - краще дубль, ніж\n-- знищена відповідь водія.\nDELETE FROM fleet.trips t\n WHERE $2 <> ''                                   -- порожній список ключів не чистить нічого\n   AND t.started_at >= $1::timestamptz\n   AND t.traccar_trip_key <> ALL (string_to_array($2, '|'))\n   AND coalesce(t.classified_by, 'geofence') = 'geofence'\n   AND t.purpose IS NULL\n   AND t.telegram_message_id IS NULL\n   AND NOT EXISTS (SELECT 1 FROM fleet.photos p WHERE p.trip_id = t.id)\nRETURNING t.id, t.traccar_trip_key, t.distance_km;",
+        "options": {
+          "queryReplacement": "={{ new Date(Date.now() - 48*3600*1000).toISOString() }},{{ $('Classify').all().map(i => i.json.traccar_trip_key).join('|') }}"
+        }
+      },
+      "id": "n-prune",
+      "name": "Прибрати застарілі",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        1200,
+        380
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "fleetdbfleetrw01",
+          "name": "Fleet DB (fleet_rw)"
+        }
+      },
+      "executeOnce": true,
+      "alwaysOutputData": true,
+      "notes": "Без цього зміна фільтрів Traccar подвоює поїздки: новий нарізок дає новий traccar_trip_key, а старий рядок нікуди не дівається."
     }
   ],
   "connections": {
@@ -245,6 +271,17 @@
         [
           {
             "node": "Привʼязати фото",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Привʼязати фото": {
+      "main": [
+        [
+          {
+            "node": "Прибрати застарілі",
             "type": "main",
             "index": 0
           }
