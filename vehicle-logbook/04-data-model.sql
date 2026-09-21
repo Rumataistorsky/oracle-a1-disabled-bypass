@@ -54,6 +54,9 @@ CREATE TABLE IF NOT EXISTS odometer_readings (
     id              bigserial PRIMARY KEY,
     vehicle_id      int  NOT NULL REFERENCES vehicles(id),
     read_on         date NOT NULL,
+    -- Дати замало. Зчитування о 14:07 і поїздки того ж дня по обіді - різні
+    -- речі, а по даті вони зливаються, і звірка з GPS показує чужий пробіг.
+    read_at         timestamptz NOT NULL DEFAULT now(),
     odometer_km     int  NOT NULL,
     reason          text NOT NULL CHECK (reason IN
                       ('year_start','year_end','acquisition','disposal','spot_check')),

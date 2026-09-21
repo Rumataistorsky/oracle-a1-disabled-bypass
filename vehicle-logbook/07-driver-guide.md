@@ -8,7 +8,7 @@
 
 ### Що від тебе потрібно
 
-Три речі. Все інше система робить сама.
+Чотири речі. Все інше система робить сама.
 
 **1. Ввечері — розібрати поїздки.**
 Бот надішле картки за день. По кожній тисни кнопку:
@@ -27,12 +27,21 @@
 Пиши конкретно: **«замір — заміна покрівлі»**, а не «робота».
 Це поле читає податкова.
 
-**2. Кожна заправка — два фото.**
+**2. Раз на місяць — число з одометра.**
+Просто набери його в чат: `47385`. Нічого більше.
+Бот одразу відповість, наскільки GPS недобрав пробіг.
+Трекер завжди бачить менше за одометр — саме ці незакриті кілометри
+податкова рахує як особисті.
+
+Фото панелі — бонус, але надсилай його **файлом**, не фото:
+Telegram стискає фото і зрізає час зйомки, а саме час і є доказом.
+
+**3. Кожна заправка — два фото.**
 Чек і одометр. Скидаєш у чат боту.
 **Навіть якщо платив своїми грошима або готівкою.**
 Без чека компанія не може ні відшкодувати тобі, ні списати витрату.
 
-**3. На обʼєкті, куди їдеш вперше — одне фото будівлі.**
+**4. На обʼєкті, куди їдеш вперше — одне фото будівлі.**
 Десять секунд. Це доказ, що ми там були. Особливо важливо, коли не знаємо
 навіть імені господаря — тільки адресу.
 
@@ -59,7 +68,7 @@
 
 ### What we need from you
 
-Three things. The system handles the rest.
+Four things. The system handles the rest.
 
 **1. In the evening — sort your trips.**
 The bot sends you cards for the day. Tap one button per trip:
@@ -78,12 +87,21 @@ after a job site — **which site and what you did**.
 Be specific: **"estimate — roof replacement"**, not "work".
 The tax authority reads this field.
 
-**2. Every fill-up — two photos.**
+**2. Once a month — the odometer number.**
+Just type it into the chat: `47385`. Nothing else.
+The bot replies with how much mileage GPS missed.
+The tracker always sees less than the odometer, and those unaccounted
+kilometres are what the tax authority counts as personal.
+
+A photo of the cluster helps too, but send it **as a file**, not as a photo:
+Telegram compresses photos and strips the capture time, and the time is the proof.
+
+**3. Every fill-up — two photos.**
 Receipt and odometer. Send both to the bot.
 **Even if you paid with your own card or cash.**
 Without a receipt the company can neither reimburse you nor deduct the expense.
 
-**3. First visit to a site — one photo of the building.**
+**4. First visit to a site — one photo of the building.**
 Ten seconds. It proves we were there. This matters most when we only have
 an address and no owner name.
 
