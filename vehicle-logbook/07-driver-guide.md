@@ -27,6 +27,15 @@
 Пиши конкретно: **«замір — заміна покрівлі»**, а не «робота».
 Це поле читає податкова.
 
+Якщо не пам'ятаєш, які поїздки ще відкриті — напиши в чат **`поїздки`**.
+Бот пришле список з номерами. Закрити будь-яку можна одним рядком:
+
+```
+15 замір даху
+```
+
+Номер із списку, пробіл, і що там робив. Картку шукати не треба.
+
 **2. Раз на місяць — число з одометра.**
 Просто набери його в чат: `47385`. Нічого більше.
 Бот одразу відповість, наскільки GPS недобрав пробіг.
@@ -86,6 +95,15 @@ The question depends on the button: after a meeting — **who with and what abou
 after a job site — **which site and what you did**.
 Be specific: **"estimate — roof replacement"**, not "work".
 The tax authority reads this field.
+
+If you don't remember which trips are still open, type **`поїздки`** in the chat.
+The bot sends a numbered list. Close any of them with one line:
+
+```
+15 roof measurement
+```
+
+Number from the list, a space, and what you did there. No need to find the card.
 
 **2. Once a month — the odometer number.**
 Just type it into the chat: `47385`. Nothing else.

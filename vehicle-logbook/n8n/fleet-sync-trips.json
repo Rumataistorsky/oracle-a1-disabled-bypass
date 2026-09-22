@@ -124,25 +124,11 @@
     },
     {
       "parameters": {
-        "operation": "upsert",
-        "schema": {
-          "__rl": true,
-          "mode": "name",
-          "value": "fleet"
-        },
-        "table": {
-          "__rl": true,
-          "mode": "name",
-          "value": "trips"
-        },
-        "columns": {
-          "mappingMode": "autoMapInputData",
-          "matchingColumns": [
-            "traccar_trip_key"
-          ],
-          "value": {}
-        },
-        "options": {}
+        "operation": "executeQuery",
+        "query": "-- Явний upsert замість autoMapInputData. Автомапінг писав УСІ поля з Classify,\n-- зокрема classification/classified_by - і щогодинна синхронізація мовчки\n-- перетирала рішення водія тим, що вигадав geofence. Поїздки, закриті кнопкою\n-- або текстом, поверталися в unclassified протягом години. Мета виживала лише\n-- тому, що її немає серед полів Classify.\n--\n-- Traccar лишається джерелом істини для геометрії поїздки (час, відстань).\n-- Усе, де є людська праця, належить людині.\nINSERT INTO fleet.trips (\n  vehicle_id, driver_id, traccar_trip_key, started_at, ended_at, trip_date,\n  origin_address, destination_address, distance_km,\n  classification, classified_by, classified_at, review_flag, review_reason)\nVALUES ($1::int, $2::int, $3, $4::timestamptz, $5::timestamptz, $6::date,\n        $7, $8, $9::numeric,\n        $10, $11, $12::timestamptz, $13::boolean, $14)\nON CONFLICT (traccar_trip_key) DO UPDATE SET\n  ended_at    = EXCLUDED.ended_at,\n  trip_date   = EXCLUDED.trip_date,\n  distance_km = EXCLUDED.distance_km,\n\n  -- Геокодер замінює голі координати на вулицю. Якщо він це вже зробив,\n  -- не повертаємо назад цифри з Traccar.\n  origin_address = CASE\n      WHEN trips.origin_address ~ '^-?[0-9]+\\.[0-9]+, *-?[0-9]+\\.[0-9]+$'\n      THEN EXCLUDED.origin_address ELSE trips.origin_address END,\n  destination_address = CASE\n      WHEN trips.destination_address ~ '^-?[0-9]+\\.[0-9]+, *-?[0-9]+\\.[0-9]+$'\n      THEN EXCLUDED.destination_address ELSE trips.destination_address END,\n\n  -- Рішення водія не перетирається ніколи.\n  classification = CASE WHEN trips.classified_by = 'driver'\n                        THEN trips.classification ELSE EXCLUDED.classification END,\n  classified_by  = CASE WHEN trips.classified_by = 'driver'\n                        THEN trips.classified_by  ELSE EXCLUDED.classified_by  END,\n  classified_at  = CASE WHEN trips.classified_by = 'driver'\n                        THEN trips.classified_at  ELSE EXCLUDED.classified_at  END,\n  review_flag    = CASE WHEN trips.classified_by = 'driver'\n                        THEN false                ELSE EXCLUDED.review_flag    END,\n  review_reason  = CASE WHEN trips.classified_by = 'driver'\n                        THEN trips.review_reason  ELSE EXCLUDED.review_reason  END,\n  updated_at = now()\nRETURNING id, traccar_trip_key, classification, classified_by;",
+        "options": {
+          "queryReplacement": "={{ [ $json.vehicle_id, $json.driver_id, $json.traccar_trip_key, $json.started_at, $json.ended_at, $json.trip_date, $json.origin_address, $json.destination_address, $json.distance_km, $json.classification, $json.classified_by, $json.classified_at, $json.review_flag, $json.review_reason ] }}"
+        }
       },
       "id": "n-upsert",
       "name": "Upsert Trips",
@@ -158,7 +144,7 @@
           "name": "Fleet DB (fleet_rw)"
         }
       },
-      "notes": "operation=upsert обовʼязковий. За замовчуванням нода робить insert, і другий прогін падає на unique-constraint traccar_trip_key: вікно вибірки 48 год, тож ті самі поїздки приходять щогодини."
+      "notes": "autoMapInputData тут неприпустимий: він пише всі поля з Classify, зокрема classification, і щогодинна синхронізація стирала те, що водій проставив кнопкою. Явний ON CONFLICT оновлює лише геометрію поїздки й береже все, де є людське рішення."
     },
     {
       "parameters": {

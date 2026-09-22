@@ -28,7 +28,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// Розбір оновлення від Telegram. Telegram шле багато типів подій —\n// беремо лише ті три, що нас цікавлять, решту тихо ігноруємо.\n\nconst u = $input.first().json.body || $input.first().json || {};\n\n// Кнопки мають покривати весь робочий день, а не лише обʼєкти. Зустріч із\n// замовником чи субпідрядником так само часто відбувається в кафе, на парковці\n// або за адресою, якої немає серед geofence - і без своєї кнопки така поїздка\n// лишалася без типу назавжди.\n//\n// purpose - мета, яку кнопка описує сама; ставимо її одразу, щоб поїздка не\n// зависла з типом, але без мети. Де мету не вивести з кнопки, hint каже, що\n// саме написати у відповідь.\nconst ACTION = {\n  est: { classification: 'business', label: 'Оцінка/замір',    ask_purpose: true,\n         hint: 'Відповідь на це повідомлення = чий обʼєкт і що міряли' },\n  job: { classification: 'business', label: 'Обʼєкт у роботі',  ask_purpose: true,\n         hint: 'Відповідь на це повідомлення = який обʼєкт і що робили' },\n  mtg: { classification: 'business', label: 'Зустріч',         ask_purpose: true,\n         hint: 'Відповідь на це повідомлення = з ким і про що зустріч' },\n  sup: { classification: 'business', label: 'Постачальник',    ask_purpose: false,\n         purpose: 'закупівля у постачальника' },\n  oth: { classification: 'business', label: 'Інше по роботі',  ask_purpose: true,\n         hint: 'Відповідь на це повідомлення = що це була за поїздка' },\n  per: { classification: 'personal', label: 'Особисте',        ask_purpose: false }\n};\n\nif (u.callback_query) {\n  const cq = u.callback_query;\n  const m = /^c:(\\d+):(est|job|mtg|sup|oth|per)$/.exec(cq.data || '');\n  if (!m) return [{ json: { kind: 'other' } }];\n  const a = ACTION[m[2]];\n  return [{ json: {\n    kind: 'callback',\n    callback_query_id: cq.id,\n    tg_user_id: cq.from && cq.from.id,\n    tg_user_name: [cq.from && cq.from.first_name, cq.from && cq.from.last_name].filter(Boolean).join(' '),\n    chat_id: cq.message && cq.message.chat && cq.message.chat.id,\n    message_id: cq.message && cq.message.message_id,\n    original_text: (cq.message && cq.message.text) || '',\n    trip_id: Number(m[1]),\n    classification: a.classification,\n    action_label: a.label,\n    ask_purpose: a.ask_purpose,\n    purpose_hint: a.hint || null,\n    purpose_default: a.purpose || ''\n  } }];\n}\n\nconst msg = u.message || u.edited_message;\nif (!msg) return [{ json: { kind: 'other' } }];\n\nconst base = {\n  tg_user_id: msg.from && msg.from.id,\n  chat_id: msg.chat && msg.chat.id,\n  message_id: msg.message_id,\n  taken_at: new Date((msg.date || 0) * 1000).toISOString()\n};\n\n// Голе число = показник одометра. Найменша можлива дія: набрати 47385 - і все.\n// Мета поїздки завжди слово, тож сплутати неможливо, а відповідати на щось\n// тут зайве: водій стоїть біля авто, а не гортає переписку.\nconst bare = /^\\s*(\\d{4,7})\\s*(?:км|km)?\\s*$/i.exec(msg.text || '');\nif (bare && !msg.reply_to_message) {\n  return [{ json: { ...base, kind: 'odometer', odometer_km: Number(bare[1]) } }];\n}\n\n// Відповідь на картку поїздки = мета цієї поїздки\nif (msg.reply_to_message && msg.text) {\n  return [{ json: { ...base, kind: 'purpose',\n                    reply_to_message_id: msg.reply_to_message.message_id,\n                    purpose: msg.text.trim().slice(0, 300) } }];\n}\n\n// Знімок приходить двома різними полями, і це не косметика. \"Фото\" Telegram\n// стискає і зрізає EXIF; \"файл\" зберігає оригінал разом із часом зйомки, а для\n// одометра саме час і є доказом. Доки гілка читала лише msg.photo, кожен\n// надісланий файлом одометр зникав мовчки - навіть без відповіді водієві.\nlet media = null;\nif (Array.isArray(msg.photo) && msg.photo.length) {\n  media = { file_id: msg.photo[msg.photo.length - 1].file_id, file_name: null };\n} else if (msg.document && /^image\\//i.test(msg.document.mime_type || '')) {\n  media = { file_id: msg.document.file_id, file_name: msg.document.file_name || null };\n}\n\nif (media) {\n  const hay = ((msg.caption || '') + ' ' + (media.file_name || '')).toLowerCase();\n  let kind = 'site';\n  if (/одометр|odometer|пробіг/.test(hay)) kind = 'odometer';\n  else if (/чек|receipt|пальн|fuel/.test(hay)) kind = 'receipt';\n  const num = /(\\d{4,7})/.exec(msg.caption || '');\n  return [{ json: { ...base, kind: 'photo', photo_kind: kind,\n                    file_id: media.file_id,\n                    file_name: media.file_name,\n                    odometer_km: (kind === 'odometer' && num) ? Number(num[1]) : null,\n                    caption: msg.caption || null } }];\n}\n\nreturn [{ json: { ...base, kind: 'other' } }];"
+        "jsCode": "// Розбір оновлення від Telegram. Telegram шле багато типів подій —\n// беремо лише ті три, що нас цікавлять, решту тихо ігноруємо.\n\nconst u = $input.first().json.body || $input.first().json || {};\n\n// Кнопки мають покривати весь робочий день, а не лише обʼєкти. Зустріч із\n// замовником чи субпідрядником так само часто відбувається в кафе, на парковці\n// або за адресою, якої немає серед geofence - і без своєї кнопки така поїздка\n// лишалася без типу назавжди.\n//\n// purpose - мета, яку кнопка описує сама; ставимо її одразу, щоб поїздка не\n// зависла з типом, але без мети. Де мету не вивести з кнопки, hint каже, що\n// саме написати у відповідь.\nconst ACTION = {\n  est: { classification: 'business', label: 'Оцінка/замір',    ask_purpose: true,\n         hint: 'Відповідь на це повідомлення = чий обʼєкт і що міряли' },\n  job: { classification: 'business', label: 'Обʼєкт у роботі',  ask_purpose: true,\n         hint: 'Відповідь на це повідомлення = який обʼєкт і що робили' },\n  mtg: { classification: 'business', label: 'Зустріч',         ask_purpose: true,\n         hint: 'Відповідь на це повідомлення = з ким і про що зустріч' },\n  sup: { classification: 'business', label: 'Постачальник',    ask_purpose: false,\n         purpose: 'закупівля у постачальника' },\n  oth: { classification: 'business', label: 'Інше по роботі',  ask_purpose: true,\n         hint: 'Відповідь на це повідомлення = що це була за поїздка' },\n  per: { classification: 'personal', label: 'Особисте',        ask_purpose: false }\n};\n\nif (u.callback_query) {\n  const cq = u.callback_query;\n  const m = /^c:(\\d+):(est|job|mtg|sup|oth|per)$/.exec(cq.data || '');\n  if (!m) return [{ json: { kind: 'other' } }];\n  const a = ACTION[m[2]];\n  return [{ json: {\n    kind: 'callback',\n    callback_query_id: cq.id,\n    tg_user_id: cq.from && cq.from.id,\n    tg_user_name: [cq.from && cq.from.first_name, cq.from && cq.from.last_name].filter(Boolean).join(' '),\n    chat_id: cq.message && cq.message.chat && cq.message.chat.id,\n    message_id: cq.message && cq.message.message_id,\n    original_text: (cq.message && cq.message.text) || '',\n    trip_id: Number(m[1]),\n    classification: a.classification,\n    action_label: a.label,\n    ask_purpose: a.ask_purpose,\n    purpose_hint: a.hint || null,\n    purpose_default: a.purpose || ''\n  } }];\n}\n\nconst msg = u.message || u.edited_message;\nif (!msg) return [{ json: { kind: 'other' } }];\n\nconst base = {\n  tg_user_id: msg.from && msg.from.id,\n  chat_id: msg.chat && msg.chat.id,\n  message_id: msg.message_id,\n  taken_at: new Date((msg.date || 0) * 1000).toISOString()\n};\n\n// Голе число = показник одометра. Найменша можлива дія: набрати 47385 - і все.\n// Мета поїздки завжди слово, тож сплутати неможливо, а відповідати на щось\n// тут зайве: водій стоїть біля авто, а не гортає переписку.\nconst txt = (msg.text || '').trim();\n\n// Одна команда, яку треба памʼятати. Лічильник у watchdog казав \"5 поїздок\n// без мети\" і не казав яких - водієві лишалося гортати чат у пошуках карток.\nif (!msg.reply_to_message && /^\\/?(поїздки|список|todo|open|start)$/i.test(txt)) {\n  return [{ json: { ...base, kind: 'list' } }];\n}\n\n// Голе число = одометр. Саме голе: без тексту після нього.\nconst bare = /^(\\d{4,7})\\s*(?:км|km)?$/i.exec(txt);\nif (bare && !msg.reply_to_message) {\n  return [{ json: { ...base, kind: 'odometer', odometer_km: Number(bare[1]) } }];\n}\n\n// \"15 замір даху\" - мета поїздки за номером зі списку. Номер бот друкує сам,\n// тож не треба ні гортати чат, ні шукати картку. З одометром не плутається:\n// там число саме по собі, тут - число і текст після нього.\nconst byId = /^(\\d{1,9})[\\s.:,)-]+(.+)$/s.exec(txt);\nif (byId && !msg.reply_to_message) {\n  return [{ json: { ...base, kind: 'purpose_id',\n                    trip_id: Number(byId[1]),\n                    purpose: byId[2].trim().slice(0, 300) } }];\n}\n\n// Відповідь на картку поїздки = мета цієї поїздки\nif (msg.reply_to_message && msg.text) {\n  return [{ json: { ...base, kind: 'purpose',\n                    reply_to_message_id: msg.reply_to_message.message_id,\n                    purpose: msg.text.trim().slice(0, 300) } }];\n}\n\n// Знімок приходить двома різними полями, і це не косметика. \"Фото\" Telegram\n// стискає і зрізає EXIF; \"файл\" зберігає оригінал разом із часом зйомки, а для\n// одометра саме час і є доказом. Доки гілка читала лише msg.photo, кожен\n// надісланий файлом одометр зникав мовчки - навіть без відповіді водієві.\nlet media = null;\nif (Array.isArray(msg.photo) && msg.photo.length) {\n  media = { file_id: msg.photo[msg.photo.length - 1].file_id, file_name: null };\n} else if (msg.document && /^image\\//i.test(msg.document.mime_type || '')) {\n  media = { file_id: msg.document.file_id, file_name: msg.document.file_name || null };\n}\n\nif (media) {\n  const hay = ((msg.caption || '') + ' ' + (media.file_name || '')).toLowerCase();\n  let kind = 'site';\n  if (/одометр|odometer|пробіг/.test(hay)) kind = 'odometer';\n  else if (/чек|receipt|пальн|fuel/.test(hay)) kind = 'receipt';\n  const num = /(\\d{4,7})/.exec(msg.caption || '');\n  return [{ json: { ...base, kind: 'photo', photo_kind: kind,\n                    file_id: media.file_id,\n                    file_name: media.file_name,\n                    odometer_km: (kind === 'odometer' && num) ? Number(num[1]) : null,\n                    caption: msg.caption || null } }];\n}\n\nreturn [{ json: { ...base, kind: 'other' } }];"
       },
       "id": "b-parse",
       "name": "Розбір оновлення",
@@ -122,6 +122,46 @@
                 ]
               },
               "outputKey": "odometer"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "version": 2
+                },
+                "combinator": "and",
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.kind }}",
+                    "rightValue": "list",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ]
+              },
+              "outputKey": "list"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "version": 2
+                },
+                "combinator": "and",
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.kind }}",
+                    "rightValue": "purpose_id",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ]
+              },
+              "outputKey": "purpose_id"
             }
           ]
         },
@@ -505,6 +545,114 @@
           "name": "ROTES Logbook Bot"
         }
       }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "-- Усе, що ще не закрите: спершу бізнес-поїздки без мети, далі без типу.\n-- Номер у списку і є способом відповісти - \"15 замір даху\".\nSELECT t.id,\n       to_char(t.started_at AT TIME ZONE 'America/Moncton','DD.MM HH24:MI') AS st,\n       t.distance_km,\n       t.origin_address,\n       t.destination_address,\n       CASE WHEN t.classification = 'unclassified' THEN 'class' ELSE 'purpose' END AS need\n  FROM fleet.trips t\n WHERE t.classification = 'unclassified'\n    OR (t.classification = 'business' AND (t.purpose IS NULL OR btrim(t.purpose) = ''))\n ORDER BY t.started_at\n LIMIT 40;",
+        "options": {}
+      },
+      "id": "b-list",
+      "name": "Відкриті поїздки",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        460,
+        880
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "fleetdbfleetrw01",
+          "name": "Fleet DB (fleet_rw)"
+        }
+      },
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "jsCode": "// Список відкритих поїздок. Головне - номер: саме ним водій і відповідає.\nconst src  = $('Розбір оновлення').first().json;\nconst rows = $input.all().map(i => i.json).filter(r => r && r.id != null);\n\nif (!rows.length) {\n  return [{ json: { chat_id: src.chat_id, message_id: src.message_id,\n                    text: '✅ Усе закрите. Немає поїздок ні без типу, ні без мети.' } }];\n}\n\nconst COORD = /^\\s*-?\\d+\\.\\d+\\s*,\\s*-?\\d+\\.\\d+\\s*$/;\nconst place = v => COORD.test(String(v || '')) ? '📍 точка' : String(v || '').slice(0, 30);\n\nconst noPurpose = rows.filter(r => r.need === 'purpose');\nconst noClass   = rows.filter(r => r.need === 'class');\nconst out = [];\n\nif (noPurpose.length) {\n  out.push(`<b>Бракує мети — ${noPurpose.length}</b>`);\n  for (const r of noPurpose) {\n    out.push(`<code>${r.id}</code> · ${r.st} → ${place(r.destination_address)} · ${r.distance_km} км`);\n  }\n}\nif (noClass.length) {\n  if (out.length) out.push('');\n  out.push(`<b>Бракує типу — ${noClass.length}</b>`);\n  for (const r of noClass) {\n    out.push(`<code>${r.id}</code> · ${r.st} ${place(r.origin_address)} → ${place(r.destination_address)} · ${r.distance_km} км`);\n  }\n}\nout.push('');\nout.push('<i>Відповідь: номер і мета одним рядком — наприклад</i> <code>15 замір даху</code>');\n\nreturn [{ json: { chat_id: src.chat_id, message_id: src.message_id, text: out.join('\\n') } }];"
+      },
+      "id": "b-list-txt",
+      "name": "Текст списку",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        680,
+        880
+      ]
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $json.chat_id }}",
+        "text": "={{ $json.text }}",
+        "additionalFields": {
+          "parse_mode": "HTML",
+          "appendAttribution": false
+        }
+      },
+      "id": "b-list-ok",
+      "name": "Надіслати список",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        900,
+        880
+      ],
+      "credentials": {
+        "telegramApi": {
+          "id": "fleettelegrambot1",
+          "name": "ROTES Logbook Bot"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "-- Той самий принцип, що й у відповіді на картку: написана мета - це заява,\n-- що поїздка робоча. Різниця лише в тому, що поїздку називають номером зі\n-- списку, а не шукають її картку в чаті.\nUPDATE fleet.trips\n   SET purpose        = $1,\n       classification = CASE WHEN classification = 'unclassified'\n                             THEN 'business' ELSE classification END,\n       classified_by  = CASE WHEN classification = 'unclassified'\n                             THEN 'driver'   ELSE classified_by  END,\n       classified_at  = CASE WHEN classification = 'unclassified'\n                             THEN now()      ELSE classified_at  END,\n       review_flag    = CASE WHEN classification = 'unclassified'\n                             THEN false      ELSE review_flag    END\n WHERE id = $2::bigint\nRETURNING id, purpose, classification,\n          to_char(started_at AT TIME ZONE 'America/Moncton','DD.MM HH24:MI') AS st,\n          destination_address;",
+        "options": {
+          "queryReplacement": "={{ [ $json.purpose, $json.trip_id ] }}"
+        }
+      },
+      "id": "b-byid",
+      "name": "Мета за номером",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        460,
+        1060
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "fleetdbfleetrw01",
+          "name": "Fleet DB (fleet_rw)"
+        }
+      },
+      "alwaysOutputData": true,
+      "notes": "alwaysOutputData: на неіснуючий номер запит поверне 0 рядків, і без цього гілка обірвалася б мовчки - водій не дізнався б, що помилився номером."
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('Розбір оновлення').item.json.chat_id }}",
+        "text": "={{ $json.id ? '✍️ Записано · ' + $json.st + ' → ' + $json.destination_address + ' · ' + $json.purpose : '⚠️ Немає поїздки з таким номером. Напиши «поїздки», щоб побачити список.' }}",
+        "additionalFields": {
+          "appendAttribution": false,
+          "reply_to_message_id": "={{ $('Розбір оновлення').item.json.message_id }}"
+        }
+      },
+      "id": "b-byid-ok",
+      "name": "Підтвердити за номером",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        680,
+        1060
+      ],
+      "credentials": {
+        "telegramApi": {
+          "id": "fleettelegrambot1",
+          "name": "ROTES Logbook Bot"
+        }
+      }
     }
   ],
   "connections": {
@@ -556,6 +704,20 @@
         [
           {
             "node": "Записати одометр",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Відкриті поїздки",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Мета за номером",
             "type": "main",
             "index": 0
           }
@@ -693,6 +855,39 @@
         [
           {
             "node": "Підтвердити одометр",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Відкриті поїздки": {
+      "main": [
+        [
+          {
+            "node": "Текст списку",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Текст списку": {
+      "main": [
+        [
+          {
+            "node": "Надіслати список",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Мета за номером": {
+      "main": [
+        [
+          {
+            "node": "Підтвердити за номером",
             "type": "main",
             "index": 0
           }
