@@ -936,6 +936,44 @@
         }
       },
       "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "jsCode": "// Час знімка беремо з самого файлу, а не з повідомлення Telegram.\n// Вони розходяться: сьогоднішній чек знято о 15:34, а надіслано о 15:59 -\n// різниця 25 хвилин, і фото прилипало не до тієї поїздки. Для одометра\n// й чека час зйомки і є доказом, тож він головніший за час відправки.\n//\n// EXIF виживає лише коли файл надіслано ЯК ФАЙЛ: \"фото\" Telegram стискає\n// і метадані зрізає. Тому тут порожньо - нормальний випадок, не помилка.\n//\n// Розбирати IFD повністю тут зайве: шукаємо в заголовку рядок виду\n// \"2026:09:22 15:34:16\" і беремо найраніший - DateTimeOriginal ніколи не\n// пізніший за DateTime чи DateTimeDigitized.\nconst RE = /\\d{4}:\\d{2}:\\d{2} \\d{2}:\\d{2}:\\d{2}/g;\nconst out = [];\n\nfor (let i = 0; i < $input.all().length; i++) {\n  let exif = '';\n  try {\n    const buf  = await this.helpers.getBinaryDataBuffer(i, 'data');\n    const head = buf.slice(0, 262144).toString('latin1');\n    const hits = head.match(RE) || [];\n    if (hits.length) {\n      // EXIF не зберігає таймзону - це локальний час телефона.\n      exif = hits.sort()[0].replace(/^(\\d{4}):(\\d{2}):(\\d{2})/, '$1-$2-$3');\n    }\n  } catch (e) {\n    exif = '';\n  }\n  out.push({ json: { photo_id: $('Зберегти фото').first().json.id, exif_local: exif } });\n}\n\nreturn out;"
+      },
+      "id": "b-exif",
+      "name": "Час зйомки з EXIF",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1120,
+        660
+      ],
+      "notes": "Гілка вбік від завантаження, щоб не чіпати основний ланцюг до Nextcloud."
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "-- Уточнюємо час знімка і переприв'язуємо поїздку. Фото, зроблене В ДОРОЗІ,\n-- належить тій поїздці, що тривала в цей момент; зроблене після приїзду -\n-- останній, що скінчилася протягом чотирьох годин до нього.\n-- Якщо EXIF порожній (фото надіслали стисненим), нічого не чіпаємо.\nUPDATE fleet.photos p\n   SET taken_at = $2::timestamp AT TIME ZONE 'America/Moncton',\n       trip_id  = coalesce(\n         (SELECT t.id FROM fleet.trips t\n           WHERE t.started_at <= ($2::timestamp AT TIME ZONE 'America/Moncton')\n             AND t.ended_at   >= ($2::timestamp AT TIME ZONE 'America/Moncton')\n           ORDER BY t.started_at LIMIT 1),\n         (SELECT t.id FROM fleet.trips t\n           WHERE t.ended_at <= ($2::timestamp AT TIME ZONE 'America/Moncton')\n             AND ($2::timestamp AT TIME ZONE 'America/Moncton') - t.ended_at < interval '4 hours'\n           ORDER BY t.ended_at DESC LIMIT 1))\n WHERE p.id = $1::int\n   AND $2 <> ''\nRETURNING id, to_char(taken_at AT TIME ZONE 'America/Moncton','DD.MM HH24:MI:SS') AS taken_local, trip_id;",
+        "options": {
+          "queryReplacement": "={{ [ $json.photo_id, $json.exif_local ] }}"
+        }
+      },
+      "id": "b-exif-save",
+      "name": "Уточнити час фото",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        1340,
+        660
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "fleetdbfleetrw01",
+          "name": "Fleet DB (fleet_rw)"
+        }
+      },
+      "alwaysOutputData": true
     }
   ],
   "connections": {
@@ -1095,6 +1133,11 @@
             "node": "Це чек?",
             "type": "main",
             "index": 0
+          },
+          {
+            "node": "Час зйомки з EXIF",
+            "type": "main",
+            "index": 0
           }
         ]
       ]
@@ -1225,6 +1268,17 @@
         [
           {
             "node": "Запамʼятати картку",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Час зйомки з EXIF": {
+      "main": [
+        [
+          {
+            "node": "Уточнити час фото",
             "type": "main",
             "index": 0
           }
