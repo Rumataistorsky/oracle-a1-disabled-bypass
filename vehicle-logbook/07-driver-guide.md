@@ -30,15 +30,10 @@
 Під полем вводу є три кнопки — **📋 Поїздки**, **📟 Одометр**, **📊 Статус**.
 Якщо їх не видно, напиши `меню`.
 
-**📋 Поїздки** — бот пришле список того, що ще не закрите, з номерами. Закрити будь-яку можна одним рядком:
+**📋 Поїздки** — бот пришле картку на кожну незакриту поїздку. Під кожною
+шість кнопок. Тисни одну — і поїздка закрита: записується і тип, і мета.
 
-```
-15 замір даху
-```
-
-Номер із списку, пробіл, і що там робив. Картку шукати не треба.
-
-**2. Раз на місяць — число з одометра.**
+Хочеш точніше — відповідай на картку текстом, і твій текст замінить шаблон. **2. Раз на місяць — число з одометра.**
 Просто набери його в чат: `47385`. Нічого більше.
 Бот одразу відповість, наскільки GPS недобрав пробіг.
 Трекер завжди бачить менше за одометр — саме ці незакриті кілометри
@@ -101,15 +96,10 @@ The tax authority reads this field.
 There are three buttons under the input field — **📋 Поїздки** (trips),
 **📟 Одометр** (odometer), **📊 Статус**. If you don't see them, type `меню`.
 
-**📋 Поїздки** sends a numbered list of everything still open. Close any of them with one line:
+**📋 Поїздки** sends one card per open trip, each with six buttons.
+Tap one and the trip is closed — both the type and the purpose get written.
 
-```
-15 roof measurement
-```
-
-Number from the list, a space, and what you did there. No need to find the card.
-
-**2. Once a month — the odometer number.**
+Want it more specific? Reply to the card with text and your words replace the template. **2. Once a month — the odometer number.**
 Just type it into the chat: `47385`. Nothing else.
 The bot replies with how much mileage GPS missed.
 The tracker always sees less than the odometer, and those unaccounted

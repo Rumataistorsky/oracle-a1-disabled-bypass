@@ -28,7 +28,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// Розбір оновлення від Telegram. Telegram шле багато типів подій —\n// беремо лише ті три, що нас цікавлять, решту тихо ігноруємо.\n\nconst u = $input.first().json.body || $input.first().json || {};\n\n// Кнопки мають покривати весь робочий день, а не лише обʼєкти. Зустріч із\n// замовником чи субпідрядником так само часто відбувається в кафе, на парковці\n// або за адресою, якої немає серед geofence - і без своєї кнопки така поїздка\n// лишалася без типу назавжди.\n//\n// purpose - мета, яку кнопка описує сама; ставимо її одразу, щоб поїздка не\n// зависла з типом, але без мети. Де мету не вивести з кнопки, hint каже, що\n// саме написати у відповідь.\nconst ACTION = {\n  est: { classification: 'business', label: 'Оцінка/замір',    ask_purpose: true,\n         hint: 'Відповідь на це повідомлення = чий обʼєкт і що міряли' },\n  job: { classification: 'business', label: 'Обʼєкт у роботі',  ask_purpose: true,\n         hint: 'Відповідь на це повідомлення = який обʼєкт і що робили' },\n  mtg: { classification: 'business', label: 'Зустріч',         ask_purpose: true,\n         hint: 'Відповідь на це повідомлення = з ким і про що зустріч' },\n  sup: { classification: 'business', label: 'Постачальник',    ask_purpose: false,\n         purpose: 'закупівля у постачальника' },\n  oth: { classification: 'business', label: 'Інше по роботі',  ask_purpose: true,\n         hint: 'Відповідь на це повідомлення = що це була за поїздка' },\n  per: { classification: 'personal', label: 'Особисте',        ask_purpose: false }\n};\n\nif (u.callback_query) {\n  const cq = u.callback_query;\n  const m = /^c:(\\d+):(est|job|mtg|sup|oth|per)$/.exec(cq.data || '');\n  if (!m) return [{ json: { kind: 'other' } }];\n  const a = ACTION[m[2]];\n  return [{ json: {\n    kind: 'callback',\n    callback_query_id: cq.id,\n    tg_user_id: cq.from && cq.from.id,\n    tg_user_name: [cq.from && cq.from.first_name, cq.from && cq.from.last_name].filter(Boolean).join(' '),\n    chat_id: cq.message && cq.message.chat && cq.message.chat.id,\n    message_id: cq.message && cq.message.message_id,\n    original_text: (cq.message && cq.message.text) || '',\n    trip_id: Number(m[1]),\n    classification: a.classification,\n    action_label: a.label,\n    ask_purpose: a.ask_purpose,\n    purpose_hint: a.hint || null,\n    purpose_default: a.purpose || ''\n  } }];\n}\n\nconst msg = u.message || u.edited_message;\nif (!msg) return [{ json: { kind: 'other' } }];\n\nconst base = {\n  tg_user_id: msg.from && msg.from.id,\n  chat_id: msg.chat && msg.chat.id,\n  message_id: msg.message_id,\n  taken_at: new Date((msg.date || 0) * 1000).toISOString()\n};\n\n// Голе число = показник одометра. Найменша можлива дія: набрати 47385 - і все.\n// Мета поїздки завжди слово, тож сплутати неможливо, а відповідати на щось\n// тут зайве: водій стоїть біля авто, а не гортає переписку.\nconst txt = (msg.text || '').trim();\n\n// Команди приходять двома шляхами: набрані руками або натиснуті на постійній\n// клавіатурі. Кнопка шле звичайне текстове повідомлення зі своїм підписом,\n// тож емодзі й регістр треба зняти, інакше \"📋 Поїздки\" не збіжиться з\n// \"поїздки\". Памʼятати команди не треба взагалі - вони є на екрані.\nconst cmd = txt.replace(/[^\\p{L}\\p{N}\\s\\/]/gu, '').replace(/\\s+/g, ' ').trim().toLowerCase();\n\nif (!msg.reply_to_message) {\n  if (/^\\/?(меню|menu|start)$/.test(cmd))          return [{ json: { ...base, kind: 'menu' } }];\n  if (/^\\/?(поїздки|список|todo|open)$/.test(cmd)) return [{ json: { ...base, kind: 'list' } }];\n  if (/^\\/?(статус|status)$/.test(cmd))            return [{ json: { ...base, kind: 'status' } }];\n  if (/^\\/?(одометр|odometer)$/.test(cmd))         return [{ json: { ...base, kind: 'odoask' } }];\n}\n\n// Голе число = одометр. Саме голе: без тексту після нього.\nconst bare = /^(\\d{4,7})\\s*(?:км|km)?$/i.exec(txt);\nif (bare && !msg.reply_to_message) {\n  return [{ json: { ...base, kind: 'odometer', odometer_km: Number(bare[1]) } }];\n}\n\n// \"15 замір даху\" - мета поїздки за номером зі списку. Номер бот друкує сам,\n// тож не треба ні гортати чат, ні шукати картку. З одометром не плутається:\n// там число саме по собі, тут - число і текст після нього.\nconst byId = /^(\\d{1,9})[\\s.:,)-]+(.+)$/s.exec(txt);\nif (byId && !msg.reply_to_message) {\n  return [{ json: { ...base, kind: 'purpose_id',\n                    trip_id: Number(byId[1]),\n                    purpose: byId[2].trim().slice(0, 300) } }];\n}\n\n// Відповідь на картку поїздки = мета цієї поїздки\nif (msg.reply_to_message && msg.text) {\n  return [{ json: { ...base, kind: 'purpose',\n                    reply_to_message_id: msg.reply_to_message.message_id,\n                    purpose: msg.text.trim().slice(0, 300) } }];\n}\n\n// Знімок приходить двома різними полями, і це не косметика. \"Фото\" Telegram\n// стискає і зрізає EXIF; \"файл\" зберігає оригінал разом із часом зйомки, а для\n// одометра саме час і є доказом. Доки гілка читала лише msg.photo, кожен\n// надісланий файлом одометр зникав мовчки - навіть без відповіді водієві.\nlet media = null;\nif (Array.isArray(msg.photo) && msg.photo.length) {\n  media = { file_id: msg.photo[msg.photo.length - 1].file_id, file_name: null };\n} else if (msg.document && /^image\\//i.test(msg.document.mime_type || '')) {\n  media = { file_id: msg.document.file_id, file_name: msg.document.file_name || null };\n}\n\nif (media) {\n  const hay = ((msg.caption || '') + ' ' + (media.file_name || '')).toLowerCase();\n  let kind = 'site';\n  if (/одометр|odometer|пробіг/.test(hay)) kind = 'odometer';\n  else if (/чек|receipt|пальн|fuel/.test(hay)) kind = 'receipt';\n  const num = /(\\d{4,7})/.exec(msg.caption || '');\n  return [{ json: { ...base, kind: 'photo', photo_kind: kind,\n                    file_id: media.file_id,\n                    file_name: media.file_name,\n                    odometer_km: (kind === 'odometer' && num) ? Number(num[1]) : null,\n                    caption: msg.caption || null } }];\n}\n\nreturn [{ json: { ...base, kind: 'other' } }];"
+        "jsCode": "// Розбір оновлення від Telegram. Telegram шле багато типів подій —\n// беремо лише ті три, що нас цікавлять, решту тихо ігноруємо.\n\nconst u = $input.first().json.body || $input.first().json || {};\n\n// Кнопки мають покривати весь робочий день, а не лише обʼєкти. Зустріч із\n// замовником чи субпідрядником так само часто відбувається в кафе, на парковці\n// або за адресою, якої немає серед geofence - і без своєї кнопки така поїздка\n// лишалася без типу назавжди.\n//\n// purpose - мета, яку кнопка описує сама; ставимо її одразу, щоб поїздка не\n// зависла з типом, але без мети. Де мету не вивести з кнопки, hint каже, що\n// саме написати у відповідь.\nconst ACTION = {\n  est: { classification: 'business', label: 'Оцінка/замір',    ask_purpose: true,\n         stem: 'оцінка/замір',\n         hint: 'Можна уточнити: відповідь на це повідомлення = чий обʼєкт і що міряли' },\n  job: { classification: 'business', label: 'Обʼєкт у роботі',  ask_purpose: true,\n         stem: 'робота на обʼєкті',\n         hint: 'Можна уточнити: відповідь на це повідомлення = що саме робили' },\n  mtg: { classification: 'business', label: 'Зустріч',         ask_purpose: true,\n         stem: 'зустріч',\n         hint: 'Можна уточнити: відповідь на це повідомлення = з ким і про що' },\n  sup: { classification: 'business', label: 'Постачальник',    ask_purpose: false,\n         stem: 'закупівля у постачальника' },\n  oth: { classification: 'business', label: 'Інше по роботі',  ask_purpose: true,\n         stem: 'робоча поїздка',\n         hint: 'Можна уточнити: відповідь на це повідомлення = що це була за поїздка' },\n  per: { classification: 'personal', label: 'Особисте',        ask_purpose: false }\n};\n\nif (u.callback_query) {\n  const cq = u.callback_query;\n  const m = /^c:(\\d+):(est|job|mtg|sup|oth|per)$/.exec(cq.data || '');\n  if (!m) return [{ json: { kind: 'other' } }];\n  const a = ACTION[m[2]];\n  return [{ json: {\n    kind: 'callback',\n    callback_query_id: cq.id,\n    tg_user_id: cq.from && cq.from.id,\n    tg_user_name: [cq.from && cq.from.first_name, cq.from && cq.from.last_name].filter(Boolean).join(' '),\n    chat_id: cq.message && cq.message.chat && cq.message.chat.id,\n    message_id: cq.message && cq.message.message_id,\n    original_text: (cq.message && cq.message.text) || '',\n    trip_id: Number(m[1]),\n    classification: a.classification,\n    action_label: a.label,\n    ask_purpose: a.ask_purpose,\n    purpose_hint: a.hint || null,\n    purpose_stem: a.stem || ''\n  } }];\n}\n\nconst msg = u.message || u.edited_message;\nif (!msg) return [{ json: { kind: 'other' } }];\n\nconst base = {\n  tg_user_id: msg.from && msg.from.id,\n  chat_id: msg.chat && msg.chat.id,\n  message_id: msg.message_id,\n  taken_at: new Date((msg.date || 0) * 1000).toISOString()\n};\n\n// Голе число = показник одометра. Найменша можлива дія: набрати 47385 - і все.\n// Мета поїздки завжди слово, тож сплутати неможливо, а відповідати на щось\n// тут зайве: водій стоїть біля авто, а не гортає переписку.\nconst txt = (msg.text || '').trim();\n\n// Команди приходять двома шляхами: набрані руками або натиснуті на постійній\n// клавіатурі. Кнопка шле звичайне текстове повідомлення зі своїм підписом,\n// тож емодзі й регістр треба зняти, інакше \"📋 Поїздки\" не збіжиться з\n// \"поїздки\". Памʼятати команди не треба взагалі - вони є на екрані.\nconst cmd = txt.replace(/[^\\p{L}\\p{N}\\s\\/]/gu, '').replace(/\\s+/g, ' ').trim().toLowerCase();\n\n// Перевіряємо команди ПЕРШИМИ і незалежно від того, відповідь це чи ні.\n// Telegram нерідко чіпляє до кнопки цитату попереднього повідомлення, і з\n// умовою \"лише якщо не відповідь\" натиск на \"📋 Поїздки\" провалювався далі,\n// у гілку мети, а бот відповідав \"не знайшов поїздку\". Текст, що дослівно\n// дорівнює назві кнопки, метою поїздки не буває.\nif (/^\\/?(меню|menu|start)$/.test(cmd))          return [{ json: { ...base, kind: 'menu' } }];\nif (/^\\/?(поїздки|список|todo|open)$/.test(cmd)) return [{ json: { ...base, kind: 'list' } }];\nif (/^\\/?(статус|status)$/.test(cmd))            return [{ json: { ...base, kind: 'status' } }];\nif (/^\\/?(одометр|odometer)$/.test(cmd))         return [{ json: { ...base, kind: 'odoask' } }];\n\n// Голе число = одометр. Саме голе: без тексту після нього.\nconst bare = /^(\\d{4,7})\\s*(?:км|km)?$/i.exec(txt);\nif (bare && !msg.reply_to_message) {\n  return [{ json: { ...base, kind: 'odometer', odometer_km: Number(bare[1]) } }];\n}\n\n// \"15 замір даху\" - мета поїздки за номером зі списку. Номер бот друкує сам,\n// тож не треба ні гортати чат, ні шукати картку. З одометром не плутається:\n// там число саме по собі, тут - число і текст після нього.\nconst byId = /^(\\d{1,9})[\\s.:,)-]+(.+)$/s.exec(txt);\nif (byId && !msg.reply_to_message) {\n  return [{ json: { ...base, kind: 'purpose_id',\n                    trip_id: Number(byId[1]),\n                    purpose: byId[2].trim().slice(0, 300) } }];\n}\n\n// Відповідь на картку поїздки = мета цієї поїздки\nif (msg.reply_to_message && msg.text) {\n  return [{ json: { ...base, kind: 'purpose',\n                    reply_to_message_id: msg.reply_to_message.message_id,\n                    purpose: msg.text.trim().slice(0, 300) } }];\n}\n\n// Знімок приходить двома різними полями, і це не косметика. \"Фото\" Telegram\n// стискає і зрізає EXIF; \"файл\" зберігає оригінал разом із часом зйомки, а для\n// одометра саме час і є доказом. Доки гілка читала лише msg.photo, кожен\n// надісланий файлом одометр зникав мовчки - навіть без відповіді водієві.\nlet media = null;\nif (Array.isArray(msg.photo) && msg.photo.length) {\n  media = { file_id: msg.photo[msg.photo.length - 1].file_id, file_name: null };\n} else if (msg.document && /^image\\//i.test(msg.document.mime_type || '')) {\n  media = { file_id: msg.document.file_id, file_name: msg.document.file_name || null };\n}\n\nif (media) {\n  const hay = ((msg.caption || '') + ' ' + (media.file_name || '')).toLowerCase();\n  let kind = 'site';\n  if (/одометр|odometer|пробіг/.test(hay)) kind = 'odometer';\n  else if (/чек|receipt|пальн|fuel/.test(hay)) kind = 'receipt';\n  const num = /(\\d{4,7})/.exec(msg.caption || '');\n  return [{ json: { ...base, kind: 'photo', photo_kind: kind,\n                    file_id: media.file_id,\n                    file_name: media.file_name,\n                    odometer_km: (kind === 'odometer' && num) ? Number(num[1]) : null,\n                    caption: msg.caption || null } }];\n}\n\nreturn [{ json: { ...base, kind: 'other' } }];"
       },
       "id": "b-parse",
       "name": "Розбір оновлення",
@@ -241,9 +241,9 @@
     {
       "parameters": {
         "operation": "executeQuery",
-        "query": "-- Кнопка, яка описує мету сама ('Постачальник'), одразу її й записує.\n-- Інакше поїздка діставала тип, лишалася без мети, і закрити цю прогалину\n-- не було чим: картка вже надіслана, друга не прийде.\n-- Готову мету не перетираємо: те, що водій написав руками, важливіше.\nUPDATE fleet.trips t\n   SET classification = $1,\n       purpose        = CASE\n                          WHEN $4 <> '' AND (t.purpose IS NULL OR btrim(t.purpose) = '')\n                          THEN $4 ELSE t.purpose\n                        END,\n       classified_by  = 'driver',\n       classified_at  = now(),\n       driver_id      = fleet.driver_for_tap(t.vehicle_id, $2::bigint, t.started_at),\n       review_flag    = false\n WHERE t.id = $3::bigint\nRETURNING t.id,\n          t.classification,\n          (SELECT label FROM fleet.drivers WHERE id = t.driver_id) AS driver_label,\n          EXISTS (SELECT 1 FROM fleet.driver_accounts WHERE telegram_user_id = $2::bigint) AS account_known;",
+        "query": "-- Один дотик має закривати поїздку повністю. Раніше кнопка ставила лише тип,\n-- і поїздка одразу ж потрапляла в інший список - \"бізнес без мети\". Тепер\n-- кнопка пише й мету: що робили плюс куди їхали. Для CRA цього досить -\n-- дата, призначення, мета й кілометри всі на місці.\n-- Написане руками не перетираємо: текст водія конкретніший за шаблон.\nUPDATE fleet.trips t\n   SET classification = $1,\n       purpose        = CASE\n                          WHEN $4 <> '' AND (t.purpose IS NULL OR btrim(t.purpose) = '')\n                          THEN $4 || ' — ' || t.destination_address\n                          ELSE t.purpose\n                        END,\n       classified_by  = 'driver',\n       classified_at  = now(),\n       driver_id      = fleet.driver_for_tap(t.vehicle_id, $2::bigint, t.started_at),\n       review_flag    = false\n WHERE t.id = $3::bigint\nRETURNING t.id,\n          t.classification,\n          t.purpose,\n          (SELECT label FROM fleet.drivers WHERE id = t.driver_id) AS driver_label,\n          EXISTS (SELECT 1 FROM fleet.driver_accounts WHERE telegram_user_id = $2::bigint) AS account_known;",
         "options": {
-          "queryReplacement": "={{ [ $json.classification, $json.tg_user_id, $json.trip_id, $json.purpose_default || '' ] }}"
+          "queryReplacement": "={{ [ $json.classification, $json.tg_user_id, $json.trip_id, $json.purpose_stem || '' ] }}"
         }
       },
       "id": "b-classify",
@@ -327,7 +327,7 @@
     {
       "parameters": {
         "operation": "executeQuery",
-        "query": "-- Відповідь текстом - це вже заява, що поїздка робоча: ніхто не пише\n-- \"Home Hardware\" як мету особистої поїздки, для особистої є кнопка.\n-- Доки текст ставив лише мету, водій робив важчу половину роботи, а поїздка\n-- лишалася unclassified і не рахувалася в бізнес-кілометри взагалі.\n-- Готову класифікацію не чіпаємо - кнопка і geofence головніші за здогад.\nUPDATE fleet.trips\n   SET purpose        = $1,\n       classification = CASE WHEN classification = 'unclassified'\n                             THEN 'business' ELSE classification END,\n       classified_by  = CASE WHEN classification = 'unclassified'\n                             THEN 'driver'   ELSE classified_by  END,\n       classified_at  = CASE WHEN classification = 'unclassified'\n                             THEN now()      ELSE classified_at  END,\n       review_flag    = CASE WHEN classification = 'unclassified'\n                             THEN false      ELSE review_flag    END\n WHERE telegram_message_id = $2::bigint\nRETURNING id, purpose, classification;",
+        "query": "-- Відповідь текстом. Ціль знаходимо двома способами, бо клієнт Telegram\n-- буває чіпляє цитату не до тієї картки: спершу за message_id картки, а\n-- якщо такої немає - за номером на початку тексту (\"15 замір даху\").\n-- Інакше водій пише мету, а вона летить у нікуди з \"не знайшов поїздку\".\nWITH tgt AS (\n  SELECT id FROM fleet.trips WHERE telegram_message_id = $2::bigint\n),\nbyid AS (\n  SELECT (regexp_match($1, '^\\s*(\\d{1,9})[\\s.:,)-]'))[1]::bigint AS id\n   WHERE NOT EXISTS (SELECT 1 FROM tgt)\n     AND $1 ~ '^\\s*\\d{1,9}[\\s.:,)-]'\n),\npick AS (\n  SELECT coalesce((SELECT id FROM tgt), (SELECT id FROM byid)) AS id,\n         CASE WHEN EXISTS (SELECT 1 FROM tgt) THEN btrim($1)\n              ELSE btrim(regexp_replace($1, '^\\s*\\d{1,9}[\\s.:,)-]+', '')) END AS purpose\n)\nUPDATE fleet.trips t\n   SET purpose        = pick.purpose,\n       classification = CASE WHEN t.classification = 'unclassified'\n                             THEN 'business' ELSE t.classification END,\n       classified_by  = CASE WHEN t.classification = 'unclassified'\n                             THEN 'driver'   ELSE t.classified_by  END,\n       classified_at  = CASE WHEN t.classification = 'unclassified'\n                             THEN now()      ELSE t.classified_at  END,\n       review_flag    = CASE WHEN t.classification = 'unclassified'\n                             THEN false      ELSE t.review_flag    END\n  FROM pick\n WHERE t.id = pick.id\n   AND btrim(pick.purpose) <> ''\nRETURNING t.id, t.purpose, t.classification;",
         "options": {
           "queryReplacement": "={{ [ $json.purpose, $json.reply_to_message_id ] }}"
         }
@@ -347,7 +347,7 @@
           "name": "Fleet DB (fleet_rw)"
         }
       },
-      "notes": "Масив, а не рядок через кому: мета майже завжди містить кому (\"замір, прорахунок\"), і n8n розрізав би її на два параметри. Текст у відповідь також закриває класифікацію - інакше поїздка з написаною метою все одно випадала з бізнес-кілометрів."
+      "notes": "Дві дороги до однієї поїздки: message_id картки або номер на початку тексту. Клієнт Telegram підставляє цитату не завжди тієї картки, і без запасного шляху відповідь водія просто зникала."
     },
     {
       "parameters": {
@@ -630,7 +630,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// Список відкритих поїздок. Головне - номер: саме ним водій і відповідає.\nconst src  = $('Розбір оновлення').first().json;\nconst rows = $input.all().map(i => i.json).filter(r => r && r.id != null);\n\nif (!rows.length) {\n  return [{ json: { chat_id: src.chat_id, message_id: src.message_id,\n                    text: '✅ Усе закрите. Немає поїздок ні без типу, ні без мети.' } }];\n}\n\nconst COORD = /^\\s*-?\\d+\\.\\d+\\s*,\\s*-?\\d+\\.\\d+\\s*$/;\nconst place = v => COORD.test(String(v || '')) ? '📍 точка' : String(v || '').slice(0, 30);\n\nconst noPurpose = rows.filter(r => r.need === 'purpose');\nconst noClass   = rows.filter(r => r.need === 'class');\nconst out = [];\n\nif (noPurpose.length) {\n  out.push(`<b>Бракує мети — ${noPurpose.length}</b>`);\n  for (const r of noPurpose) {\n    out.push(`<code>${r.id}</code> · ${r.st} → ${place(r.destination_address)} · ${r.distance_km} км`);\n  }\n}\nif (noClass.length) {\n  if (out.length) out.push('');\n  out.push(`<b>Бракує типу — ${noClass.length}</b>`);\n  for (const r of noClass) {\n    out.push(`<code>${r.id}</code> · ${r.st} ${place(r.origin_address)} → ${place(r.destination_address)} · ${r.distance_km} км`);\n  }\n}\nout.push('');\nout.push('<i>Відповідь: номер і мета одним рядком — наприклад</i> <code>15 замір даху</code>');\n\nreturn [{ json: { chat_id: src.chat_id, message_id: src.message_id, text: out.join('\\n') } }];"
+        "jsCode": "// Одна картка на поїздку, а не список у тексті. Список змушував водія\n// читати номер, тримати його в голові, перемикатися на клавіатуру й набирати\n// \"15 замір даху\" - чотири дії там, де має бути один дотик. Кнопки під\n// карткою закривають поїздку повністю: і тип, і мету.\nconst src  = $('Розбір оновлення').first().json;\nconst rows = $input.all().map(i => i.json).filter(r => r && r.id != null);\n\nif (!rows.length) {\n  return [{ json: { chat_id: src.chat_id, trip_id: null, empty: true,\n                    card_text: '✅ Усе закрите. Немає поїздок ні без типу, ні без мети.' } }];\n}\n\nconst COORD = /^\\s*-?\\d+\\.\\d+\\s*,\\s*-?\\d+\\.\\d+\\s*$/;\nconst place = v => COORD.test(String(v || '')) ? '📍 точка' : String(v || '');\n\nreturn rows.slice(0, 10).map((r, i) => {\n  const lines = [\n    `🚐 <b>${r.st}</b> · ${r.distance_km} км  <i>(${i + 1} з ${rows.length})</i>`,\n    `${place(r.origin_address)} → ${place(r.destination_address)}`,\n    r.need === 'purpose'\n      ? '📝 <i>Тип уже стоїть. Обери, що там робив:</i>'\n      : '❓ <i>Обери, що це була за поїздка:</i>'\n  ];\n  return { json: { chat_id: src.chat_id, trip_id: r.id, empty: false,\n                   card_text: lines.join('\\n') } };\n});"
       },
       "id": "b-list-txt",
       "name": "Текст списку",
@@ -644,7 +644,66 @@
     {
       "parameters": {
         "chatId": "={{ $json.chat_id }}",
-        "text": "={{ $json.text }}",
+        "text": "={{ $json.card_text }}",
+        "replyMarkup": "={{ $json.empty ? 'none' : 'inlineKeyboard' }}",
+        "inlineKeyboard": {
+          "rows": [
+            {
+              "row": {
+                "buttons": [
+                  {
+                    "text": "Оцінка/замір",
+                    "additionalFields": {
+                      "callback_data": "=c:{{ $json.trip_id }}:est"
+                    }
+                  },
+                  {
+                    "text": "Обʼєкт у роботі",
+                    "additionalFields": {
+                      "callback_data": "=c:{{ $json.trip_id }}:job"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "row": {
+                "buttons": [
+                  {
+                    "text": "Зустріч",
+                    "additionalFields": {
+                      "callback_data": "=c:{{ $json.trip_id }}:mtg"
+                    }
+                  },
+                  {
+                    "text": "Постачальник",
+                    "additionalFields": {
+                      "callback_data": "=c:{{ $json.trip_id }}:sup"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "row": {
+                "buttons": [
+                  {
+                    "text": "Інше по роботі",
+                    "additionalFields": {
+                      "callback_data": "=c:{{ $json.trip_id }}:oth"
+                    }
+                  },
+                  {
+                    "text": "Особисте",
+                    "additionalFields": {
+                      "callback_data": "=c:{{ $json.trip_id }}:per"
+                    }
+                  }
+                ]
+              }
+            }
+          ]
+        },
         "additionalFields": {
           "parse_mode": "HTML",
           "appendAttribution": false
@@ -663,7 +722,8 @@
           "id": "fleettelegrambot1",
           "name": "ROTES Logbook Bot"
         }
-      }
+      },
+      "notes": "Та сама клавіатура, що й на вечірніх картках: водій бачить один і той самий набір усюди. Один дотик пише і тип, і мету."
     },
     {
       "parameters": {
@@ -852,6 +912,30 @@
           "name": "ROTES Logbook Bot"
         }
       }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "-- Щоб відповідь текстом на цю картку знайшла свою поїздку. Порожній рядок\n-- (коли закривати нічого) має trip_id = NULL і просто нічого не оновлює.\nUPDATE fleet.trips SET telegram_message_id = $1::bigint\n WHERE id = $2::bigint\nRETURNING id, telegram_message_id;",
+        "options": {
+          "queryReplacement": "={{ [ $json.result.message_id, $('Текст списку').item.json.trip_id ] }}"
+        }
+      },
+      "id": "b-list-remember",
+      "name": "Запамʼятати картку",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        1120,
+        880
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "fleetdbfleetrw01",
+          "name": "Fleet DB (fleet_rw)"
+        }
+      },
+      "alwaysOutputData": true
     }
   ],
   "connections": {
@@ -1130,6 +1214,17 @@
         [
           {
             "node": "Надіслати статус",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Надіслати список": {
+      "main": [
+        [
+          {
+            "node": "Запамʼятати картку",
             "type": "main",
             "index": 0
           }
