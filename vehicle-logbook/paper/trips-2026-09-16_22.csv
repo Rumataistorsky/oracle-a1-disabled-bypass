@@ -1,0 +1,29 @@
+d|origin_address|destination_address|distance_km|classification|p
+2026-09-16|HOME-OFFICE|SUPPLIER-TWO-NATIONS|5.81|business|закупівля у постачальника: SUPPLIER-TWO-NATIONS
+2026-09-17|SUPPLIER-TWO-NATIONS|HOME-OFFICE|6.33|business|повернення в офіс
+2026-09-17|HOME-OFFICE|CLIENT-DUNCAN-CROWTHER|3.22|business|переговори на рахунок встановлення вікон
+2026-09-17|CLIENT-DUNCAN-CROWTHER|SUPPLIER-RETAIL-SOUTH|0.42|business|закупівля у постачальника: SUPPLIER-RETAIL-SOUTH
+2026-09-17|SUPPLIER-RETAIL-SOUTH|CLIENT-ROMAN-MARUSIIA|5.79|business|роботаина обєкті
+2026-09-17|CLIENT-ROMAN-MARUSIIA|CLIENT-ROMAN-MARUSIIA|1.10|business|робота на обєкті
+2026-09-17|CLIENT-ROMAN-MARUSIIA|HOME-OFFICE|3.72|business|повернення в офіс
+2026-09-18|HOME-OFFICE|CLIENT-ROMAN-MARUSIIA|4.64|business|робота на обєкті
+2026-09-18|CLIENT-ROMAN-MARUSIIA|HOME-OFFICE|3.66|business|повернення в офіс
+2026-09-19|HOME-OFFICE|SUPPLIER-SUPERSTORE-SMYTHE|0.78|business|закупівля у постачальника: SUPPLIER-SUPERSTORE-SMYTHE
+2026-09-19|SUPPLIER-SUPERSTORE-SMYTHE|28 Rue Saunders Street, Town Plat|0.68|business|Hanif картинки для прорахунку внутрішніх робіт по будинку, , змінив зустріч на парковку біля MCAF
+2026-09-19|Rue Smythe Street, Town Plat|HOME-OFFICE|1.17|business|Hanif
+2026-09-19|HOME-OFFICE|SHOP-102-BLOOR|3.96|business|повернення у воркшоп
+2026-09-19|SHOP-102-BLOOR|Rue Saint Mary's Street, Brookside West|1.91|business|закупівля у постачальника
+2026-09-19|Rue Saint Mary's Street, Brookside West|SHOP-102-BLOOR|2.32|business|Привіз інструменти вигрузив
+2026-09-19|SHOP-102-BLOOR|Rue Main Street, Nashwaaksis|0.38|business|Home Hardware
+2026-09-19|Rue Main Street, Nashwaaksis|HOME-OFFICE|3.49|business|Заїхав за інструментом
+2026-09-19|HOME-OFFICE|CLIENT-ROMAN-MARUSIIA|3.85|business|Продовження роботи по деку
+2026-09-19|CLIENT-ROMAN-MARUSIIA|HOME-OFFICE|3.71|business|повернення в офіс
+2026-09-19|HOME-OFFICE|SHOP-102-BLOOR|3.99|business|повернення у воркшоп
+2026-09-19|SHOP-102-BLOOR|HOME-OFFICE|3.65|business|повернення в офіс
+2026-09-21|HOME-OFFICE|CLIENT-ROMAN-MARUSIIA|4.61|business|роботаина обєкті
+2026-09-21|CLIENT-ROMAN-MARUSIIA|HOME-OFFICE|3.76|business|повернення в офіс
+2026-09-22|HOME-OFFICE|CLIENT-ROMAN-MARUSIIA|4.37|business|робота на обєкті
+2026-09-22|CLIENT-ROMAN-MARUSIIA|Rue Prospect Street, Hanwell|14.66|business|виїзд до постачальника
+2026-09-22|SUPPLIER-RETAIL-SOUTH|1205 Boulevard Alison Boulevard|5.93|unclassified|
+2026-09-22|1205 Boulevard Alison Boulevard|CLIENT-ROMAN-MARUSIIA|11.69|unclassified|
+2026-09-22|CLIENT-ROMAN-MARUSIIA|HOME-OFFICE|3.77|business|повернення в офіс
