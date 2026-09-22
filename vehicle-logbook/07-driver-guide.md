@@ -27,8 +27,10 @@
 Пиши конкретно: **«замір — заміна покрівлі»**, а не «робота».
 Це поле читає податкова.
 
-Якщо не пам'ятаєш, які поїздки ще відкриті — напиши в чат **`поїздки`**.
-Бот пришле список з номерами. Закрити будь-яку можна одним рядком:
+Під полем вводу є три кнопки — **📋 Поїздки**, **📟 Одометр**, **📊 Статус**.
+Якщо їх не видно, напиши `меню`.
+
+**📋 Поїздки** — бот пришле список того, що ще не закрите, з номерами. Закрити будь-яку можна одним рядком:
 
 ```
 15 замір даху
@@ -96,8 +98,10 @@ after a job site — **which site and what you did**.
 Be specific: **"estimate — roof replacement"**, not "work".
 The tax authority reads this field.
 
-If you don't remember which trips are still open, type **`поїздки`** in the chat.
-The bot sends a numbered list. Close any of them with one line:
+There are three buttons under the input field — **📋 Поїздки** (trips),
+**📟 Одометр** (odometer), **📊 Статус**. If you don't see them, type `меню`.
+
+**📋 Поїздки** sends a numbered list of everything still open. Close any of them with one line:
 
 ```
 15 roof measurement
