@@ -126,6 +126,138 @@ Operating = 0.34 × personal km
 
 І зберігати докази бізнес-мети по кожній поїздці (адреса + мета + фото/lead).
 
+## Виняток для van: ITA 248(1), параграф (e)(ii)
+
+Перевірено 22.09.2026. Раніше в `fleet.vehicles.notes` стояло «7 місць →
+automobile, виключення для van не діє». **Це неправда** — сплутано два
+різні винятки:
+
+| Параграф | Умова | Обмеження по місцях |
+|---|---|---|
+| (e)(i) | *переважно* (>50%) для перевезення **вантажу або обладнання** | так: водій + 2 пасажири |
+| **(e)(ii)** | **90%+** для перевезення вантажу, обладнання **або пасажирів** | **немає** |
+
+Обмеження по місцях є тільки в (e)(i). Для семимісної Pacifica працює
+(e)(ii), де ліміту місць немає взагалі. Мінівен CRA трактує як «vehicle
+of a type similar to a van», тобто під параграф (e) підпадає.
+
+Два ключові слова в (e)(ii):
+
+* **«або пасажирів»** — возити Алекса чи клієнта на обʼєкт зараховується.
+  Фактично це «90% пробігу заради доходу», а не «90% з вантажем».
+* **«у податковому році, в якому авто придбано»** — тест разовий. Пройшов
+  один раз — авто перестає бути `automobile` назавжди, без щорічної
+  перевірки.
+
+### Дедлайн — не 31 грудня за замовчуванням
+
+Вікно закривається в кінці **податкового року корпорації**, в якому авто
+придбано (16.09.2026), а не 31 грудня. Якщо фінансовий рік
+ROTES SMART закінчується не 31.12 — дата інша. **Рік закриття книг
+компанії досі не зафіксований у системі; без нього дедлайн невідомий.**
+
+### Скільки це насправді коштує
+
+Раніше я оцінював виграш у ~$11 300/рік. **Це була помилка**: цифра
+рахувалася проти *повного* standby charge, який при високому бізнес-
+використанні не застосовується. Діє **зменшений** standby (ITA 6(2)):
+доступний, коли бізнес-пробіг >50% і особистий <20 004 км/рік, і дорівнює
+повному × особисті км ÷ 20 004.
+
+Парадокс у тому, що умова, яка дає право на виняток для van (90% бізнесу),
+автоматично заганяє тебе глибоко в зону зменшеного standby. Вони гасять
+одне одного.
+
+Повний standby = 2% × $47 147.70 × 12 = **$11 315/рік**. Реально при 10%
+особистого пробігу:
+
+| Пробіг за рік | Особисте 10% | Standby | + operating | Разом benefit | HST до сплати компанією |
+|---|---|---|---|---|---|
+| 5 900 км *(поточний темп)* | 590 км | $334 | $167 | **$501** | $59 |
+| 12 000 км | 1 200 км | $679 | $339 | **$1 018** | $121 |
+| 20 000 км | 2 000 км | $1 131 | $566 | **$1 697** | $201 |
+
+При податку ~40% це $200–680/рік особистого податку. Не $11 300.
+
+### Де виняток справді вартий уваги
+
+Не в щорічній економії, а в трьох речах:
+
+1. **Страховка від перерахунку.** Зменшений standby перевіряється
+   **щороку**. Якщо CRA хоч в одному році зіб'є бізнес-використання нижче
+   50% — за той рік нараховується **повний** $11 315 плюс HST 14/114.
+   Виняток (e)(ii) перевіряється **один раз** і знімає цей ризик назавжди.
+2. **Class 10 замість 10.1.** Стеля $39 000 + податки = $44 850 не діє →
+   амортизується всі $47 147.70 (на $2 298 більше), і дозволений terminal
+   loss при продажу, який для 10.1 заборонений. Зворотний бік: зʼявляється
+   recapture.
+3. **Ліміт відсотків $350/міс і стеля HST ITC** не діють: ITC $6 150
+   замість $5 850.
+
+### Ціна входу
+
+При поточному темпі (113 км за перший тиждень ≈ 5 900 км/рік) 10%
+особистого пробігу — це **близько 590 км на весь рік**. Одна поїздка до
+Монктона і назад зʼїдає більше половини ліміту. Виняток тут коштує
+фактичної відмови від особистого користування авто заради $200–700
+податку на рік плюс страховки.
+
+**Рішення за бухгалтером, і воно не очевидне.** Якщо річний пробіг
+виросте до 15–20 тис. км, виняток стає вигіднішим; при 6 тис. км —
+навряд.
+
+## Productivity Mega Deduction — зміна від 15.09.2026
+
+Оголошена 15 вересня 2026, **статус: проєкт закону, не ухвалено**.
+Постійне негайне списання (100% вартості в рік введення в експлуатацію)
+для приблизно двох третин капітальних активів, для майна, **придбаного
+15.09.2026 або пізніше**.
+
+Pacifica придбана 16.09.2026 — на день усередині вікна. Але для авто є
+окреме виключення, і воно спрацьовує, коли виконані **обидві** умови:
+
+1. це майно класу 10 або 10.1, яке є passenger vehicle, або motor vehicle,
+   придбаний переважно як таксі, або **описаний у параграфі (d) чи (e)
+   визначення `automobile`**; **і**
+2. авто **використовувалося будь-ким до придбання**, *або* зібране **поза
+   Канадою**.
+
+Для нашого випадку:
+
+| Умова | Pacifica |
+|---|---|
+| Складена в Канаді | так — Windsor Assembly, Онтаріо |
+| Була у вжитку до купівлі | **так — 47 321 км на одометрі** |
+
+Друга умова виконана → авто **виключене** з негайного списання. Залишається
+Accelerated Investment Incentive (підвищена перша амортизація, коефіцієнт
+фази згортання на 2026 уточнити в бухгалтера).
+
+Окремо варто помітити: у першій умові прямо названий **параграф (e)** —
+той самий виняток для van. Тобто проходження тесту 90% не відкриває
+доступ до негайного списання; авто з (e) названі серед виключених.
+
+### Що з цього випливає на майбутнє
+
+Якщо компанія купуватиме ще авто: **нове і зібране в Канаді, придбане
+після 15.09.2026, списується повністю в перший рік.** Pacifica збирається
+у Віндзорі. Різниця між «нове канадське» і «вживане» тепер — це різниця
+між 100% вартості в перший рік і 30% спадним залишком.
+
+## HST: змін для авто не знайдено
+
+Правила ті самі. Три моменти, які діють:
+
+1. **ITC при купівлі.** Корпорація, комерційне використання >50% → 100%
+   HST, але для passenger vehicle **обмежено стелею капітальної вартості**:
+   15% × $39 000 = $5 850 замість сплачених $6 150. Якщо авто пройде тест
+   (e)(ii) і перестане бути passenger vehicle — стеля не діє.
+2. **HST на taxable benefit.** Компанія-реєстрант **сплачує** HST з
+   нарахованої вигоди: **14/114** зі standby charge і **11%** з operating
+   benefit (ставки для провінцій з HST 15%). Це витрата компанії щороку,
+   і вона зникає разом зі standby charge.
+3. **Поріг 50%** для ITC на капітальне майно корпорації — не 90%.
+
 ## Форма запису: папір чи база — CRA байдуже
 
 CRA **не приписує формату логбука**. Паперовий блокнот, таблиця, застосунок
@@ -206,6 +338,14 @@ charge, operating benefit і business %. Показати журнал бухг�
 * [Passenger Vehicle Expense Limitations — TaxTips.ca](https://www.taxtips.ca/smallbusiness/passenger-vehicle-limits.htm)
 * [GST/HST Input Tax Credits for Vehicles — TaxTips.ca](https://www.taxtips.ca/gst/gst-input-tax-credits-vehicles-and-aircraft.htm)
 * [IC05-1R1 Electronic Record Keeping — Canada.ca](https://www.canada.ca/en/revenue-agency/services/forms-publications/publications/ic05-1.html)
+* [Productivity Mega Deduction — Department of Finance Canada, 15.09.2026](https://www.canada.ca/en/department-finance/news/2026/09/government-of-canada-introduces-new-productivity-mega-deduction-to-boost-canadas-advantage-as-the-most-competitive-g7-country-for-new-business-inve.html)
+* [Productivity Mega Deduction: what you need to know — BLG](https://www.blg.com/en/insights/2026/09/canada-proposes-new-productivity-mega-deduction)
+* [Що виключено з Mega Deduction (правило для авто) — Insight CPA](https://insightscpa.ca/productivity-mega-deduction-canada-2026/)
+* [Vehicle Definitions For Tax Purposes — TaxTips.ca](https://www.taxtips.ca/smallbusiness/vehicle-definitions-for-tax-purposes.htm)
+* [2017-0713011E5 — мінівен як «van-type vehicle»](https://taxinterpretations.com/cra/severed-letters/2017-0713011e5)
+* [2017-0696041E5 — standby charge не діє для non-automobile motor vehicle](https://taxinterpretations.com/cra/severed-letters/2017-0696041e5)
+* [GST/HST з taxable benefit — Canada.ca](https://www.canada.ca/en/revenue-agency/services/tax/businesses/topics/payroll/calculating-deductions/how-to-calculate/calculate-gst-hst.html)
+* [Accelerated Investment Incentive — Canada.ca](https://www.canada.ca/en/revenue-agency/services/tax/businesses/topics/sole-proprietorships-partnerships/report-business-income-expenses/claiming-capital-cost-allowance/accelerated-investment-incentive.html)
 * [Review of business systems and keeping audit trails — Canada.ca](https://www.canada.ca/en/revenue-agency/services/tax/businesses/topics/keeping-records/review-business-systems-keeping-audit-trails-business-transactions.html)
 * [Automobile expenses and recordkeeping — BDO Canada](https://www.bdo.ca/insights/tax-bulletin-automobile-expenses-and-recordkeeping)
 * [Automobile Use by Employees — Baker Tilly Canada](https://www.bakertilly.ca/insights/automobile-use-by-employees)
