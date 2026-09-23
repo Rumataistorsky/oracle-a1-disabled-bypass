@@ -257,8 +257,8 @@ Uptime Kuma (LXC 901) — **додати вручну**, її API працює �
 ## Geofences
 
 Класифікатор дивиться лише на **префікс імені**, тому назва — це не підпис,
-а правило: `HOME-OFFICE`, `SHOP-`, `CLIENT-`, `SUPPLIER-` дають business,
-`PERSONAL-` дає personal. Щоб завести нове місце, достатньо додати geofence
+а правило: `HOME-OFFICE`, `SHOP-`, `CLIENT-`, `SUPPLIER-`, `SERVICE-`, `GOV-`
+дають business, `PERSONAL-` дає personal. Щоб завести нове місце, достатньо додати geofence
 з правильним префіксом — код чіпати не треба.
 
 | # | Назва | Центр | R, м | Що це |
@@ -281,6 +281,18 @@ Uptime Kuma (LXC 901) — **додати вручну**, її API працює �
 | 16 | `CLIENT-UTIMUS-PETERBOROUGH` | 44.309589, -78.330859 | 150 | Utimus, Peterborough ON |
 | 17 | `CLIENT-MCDONALD-WATERLOO` | 45.954496, -66.632933 | 120 | Brian McDonald, 58 Waterloo Row |
 | 18 | `CLIENT-ITOAFA-SQUIRES` | 45.947974, -66.653104 | 120 | Bogdan George Itoafa, 528 Squires St |
+| 19 | `SUPPLIER-SHAW-ALISON` | 45.89628, -66.609484 | 200 | The Shaw Group, 1205 Alison Blvd — бетонні вироби |
+| 20 | `SUPPLIER-SPRINGHILL` | 45.96117, -66.742632 | 300 | Springhill Infrastructure, 900 Springhill — щебінь, камінь |
+| 21 | `SERVICE-RECAR-AVONLEA` | 45.94505, -66.68941 | 120 | REcar, 14 Avonlea Ct — документи на авто, сервіс |
+| 22 | `GOV-CITY-FREDERICTON` | 45.993911, -66.652371 | 150 | City of Fredericton, Reynolds St — реєстрація, номери |
+
+№19-22 додані 23.09.2026 з реальних стоянок того дня: координати —
+середнє по точках зі швидкістю <2 вузли (63, 26, 16 і 34 фікси відповідно),
+тож центр стоїть рівно там, де авто справді стояло.
+
+`SERVICE-` і `GOV-` — нові префікси. Сервіс власного авто компанії і
+оформлення номерів це бізнес-поїздки, але не постачальник і не клієнт,
+тому для них окремі категорії.
 
 Центри 1-8 і 10 взяті з **реальних GPS-точок стоянки**, а не з геокодера:
 OSM ставить точку Canadian Tire за 200-350 м від місця, де авто справді
