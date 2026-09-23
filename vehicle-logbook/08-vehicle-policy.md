@@ -13,7 +13,7 @@
 
 **ROTES SMART Construction Inc.**
 
-**Effective date:** ______________
+**Effective date:** 16 September 2026
 
 ### 1. Vehicle
 
@@ -24,12 +24,13 @@
 | VIN | `2C4RC1GGXSR535286` |
 | Registered owner | ROTES SMART Construction Inc. |
 | Odometer at acquisition | 47,305 km |
-| Date of acquisition | ______________ |
+| Date of acquisition | 16 September 2026 |
+| Company's taxation year | 1 April – 31 March |
 
 ### 2. Place of business
 
 The Company's registered office and principal place of business is located at
-**______________________________** (the "Base"). The Company's operations are
+**3G – 501 Dundonald Street, Fredericton, NB E3B 9S4** (the "Base"). The Company's operations are
 directed from this location, client records are maintained there, and it is the
 point of departure for work-related travel.
 
@@ -51,14 +52,23 @@ of personal transportation.
 
 | # | Make / model | Year | Plate or VIN |
 |---|---|---|---|
-| 1 | | | |
+| 1 | Mitsubishi Eclipse Cross | 2020 | `JA4AT3AA3LZ601823` |
 | 2 | | | |
+
+The Mitsubishi Eclipse Cross is registered to Roman Tesla and Oksana Tesla
+personally, was acquired on 7 June 2024, and remains in service as the
+household's personal vehicle. The Vehicle is used for the business of the
+Company only.
 
 ### 5. Personal use of the Vehicle
 
-Personal use of the Vehicle is to be kept to a minimum and must be recorded in
-the logbook as personal. Personal use is not prohibited, but it is not to be
-recorded as business use under any circumstances.
+The Vehicle is designated for business use only. The officer maintains a
+personal vehicle (section 4) for personal and family travel.
+
+Personal use of the Vehicle is not prohibited, but where it occurs it must be
+recorded in the logbook as personal and is not to be recorded as business use
+under any circumstances. An absence of personal entries is not to be assumed:
+an actual personal trip is recorded as one.
 
 Where an employee other than the officer operates the Vehicle, travel between
 that employee's residence and the Base is personal use (commuting) and shall be
