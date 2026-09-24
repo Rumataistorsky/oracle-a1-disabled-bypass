@@ -284,11 +284,16 @@ Uptime Kuma (LXC 901) — **додати вручну**, її API працює �
 | 19 | `SUPPLIER-SHAW-ALISON` | 45.89628, -66.609484 | 200 | The Shaw Group, 1205 Alison Blvd — бетонні вироби |
 | 20 | `SUPPLIER-SPRINGHILL` | 45.96117, -66.742632 | 300 | Springhill Infrastructure, 900 Springhill — щебінь, камінь |
 | 21 | `SERVICE-RECAR-AVONLEA` | 45.94505, -66.68941 | 120 | REcar, 14 Avonlea Ct — документи на авто, сервіс |
-| 22 | `GOV-CITY-FREDERICTON` | 45.993911, -66.652371 | 150 | City of Fredericton, Reynolds St — реєстрація, номери |
+| 22 | `GOV-SNB-BROOKSIDE` | 45.993911, -66.652371 | 150 | Service New Brunswick, Brookside Mall, 435 Brookside Dr — реєстрація авто |
 
 №19-22 додані 23.09.2026 з реальних стоянок того дня: координати —
 середнє по точках зі швидкістю <2 вузли (63, 26, 16 і 34 фікси відповідно),
 тож центр стоїть рівно там, де авто справді стояло.
+
+№22 спершу назвали `GOV-CITY-FREDERICTON` за словами водія. Google Timeline
+підписав ту саму точку як **Service New Brunswick, Brookside Mall** — і це
+правильно: номери в NB видає SNB, а не муніципалітет. Геокодер дав
+«Reynolds Street», бо це найближча вулиця до парковки моллу. Перейменовано.
 
 `SERVICE-` і `GOV-` — нові префікси. Сервіс власного авто компанії і
 оформлення номерів це бізнес-поїздки, але не постачальник і не клієнт,
