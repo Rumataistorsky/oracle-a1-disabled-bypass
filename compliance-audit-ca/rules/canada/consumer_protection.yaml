@@ -1,0 +1,82 @@
+# Provincial consumer protection statutes for online sales.
+# Ontario: Consumer Protection Act, 2002 (S.O. 2002, c. 30, Sched. A) and O. Reg. 17/05 (internet agreements);
+#   being replaced by the Consumer Protection Act, 2023 once proclaimed.
+# Quebec: Consumer Protection Act (CQLR c. P-40.1) - distance contracts (ss. 54.1-54.16), all-inclusive price (s. 224(c)).
+- id: CP-ON-01
+  law: Ontario Consumer Protection Act
+  jurisdiction: "ON"
+  title: Internet agreement disclosure before the consumer commits
+  requirement: >
+    O. Reg. 17/05 s. 32: before a consumer enters into an internet agreement over $50 the supplier
+    must disclose the supplier's name, address, phone, a fair description of the goods, itemised
+    price, total, delivery arrangements, cancellation/return policies, and give an express
+    opportunity to accept or decline and correct errors; a copy must be delivered within 15 days.
+  check: Does the checkout or pricing page show the supplier's legal name and address, delivery terms, cancellation and return rules, and total price before the buy button?
+  applies_when: ["ecommerce"]
+  severity: medium
+  penalty: "Consumer may cancel within 1 year of entering the agreement; on conviction fines up to $250,000 for corporations (CPA 2002 s. 116)."
+  penalty_max_cad: 250000
+  source: https://www.ontario.ca/laws/regulation/050017#BK34
+  fix_hint: Add a pre-purchase summary with seller identity, delivery, cancellation and total price.
+- id: CP-ON-02
+  law: Ontario Consumer Protection Act
+  jurisdiction: "ON"
+  title: Subscriptions and automatic renewals disclosed with easy cancellation
+  requirement: >
+    CPA 2002 s. 13 (unsolicited goods) and O. Reg. 17/05 s. 32 disclosure; the Consumer Protection
+    Act, 2023 adds explicit rules on subscription renewals, price increases and cancellation without
+    penalty. The term, renewal frequency, price and how to cancel must be clear before purchase.
+  check: Are recurring charges, renewal terms and cancellation steps stated before payment? Is cancellation as easy as sign-up?
+  applies_when: ["subscription_or_recurring"]
+  severity: medium
+  penalty: "Consumer cancellation rights; fines up to $250,000 for corporations."
+  penalty_max_cad: 250000
+  source: https://www.ontario.ca/laws/statute/02c30
+  fix_hint: State renewal period, price and cancellation method next to the subscribe button; add online cancellation.
+- id: CP-QC-01
+  law: Quebec Consumer Protection Act
+  jurisdiction: "QC"
+  title: All-inclusive price advertised (no hidden fees)
+  requirement: >
+    s. 224(c): a merchant may not charge a higher price than advertised; the advertised price must
+    include all amounts the consumer must pay, except GST/QST. Rules on "regular price" references
+    also apply.
+  check: Is the displayed price the total the consumer pays (before GST/QST)? Are there add-on fees revealed later?
+  applies_when: ["ecommerce"]
+  auto_fail_when: "ecommerce and has_drip_pricing"
+  severity: high
+  penalty: "Fines of $2,000 to $100,000 for legal persons per offence (doubled on repeat); consumer remedies and punitive damages."
+  penalty_max_cad: 100000
+  source: https://www.legisquebec.gouv.qc.ca/en/document/cs/P-40.1
+  fix_hint: Show the all-in price everywhere the product is offered.
+- id: CP-QC-02
+  law: Quebec Consumer Protection Act
+  jurisdiction: "QC"
+  title: Distance contract disclosures and cancellation rights
+  requirement: >
+    ss. 54.4-54.9: before a distance contract the merchant must disclose identity, address, detailed
+    description, itemised price, currency, delivery date and cancellation rules, and give the
+    consumer the opportunity to accept or decline; a copy of the contract must be sent within 15
+    days; the consumer may cancel if disclosures are missing or delivery is late.
+  check: Are identity, address, itemised price in CAD, delivery date and cancellation terms disclosed before purchase, in French?
+  applies_when: ["ecommerce"]
+  severity: medium
+  penalty: "Consumer cancellation and chargeback rights; fines of $2,000 to $100,000 for legal persons per offence."
+  penalty_max_cad: 100000
+  source: https://www.legisquebec.gouv.qc.ca/en/document/cs/P-40.1
+  fix_hint: Add a pre-purchase disclosure block in French and English with all required elements.
+- id: CP-QC-03
+  law: Quebec Consumer Protection Act
+  jurisdiction: "QC"
+  title: Automatic renewal and subscription notice
+  requirement: >
+    ss. 214.1-214.11 (sequential performance contracts) and the 2024 amendments (Bill 29): a
+    merchant must send a notice before automatic renewal and cannot renew at a higher price without
+    consent; cancellation must be possible without penalty beyond the amount prescribed.
+  check: Are renewal notices, price and cancellation conditions stated for subscriptions? Any "cannot be cancelled" wording?
+  applies_when: ["subscription_or_recurring"]
+  severity: medium
+  penalty: "Fines of $2,000 to $100,000 for legal persons per offence."
+  penalty_max_cad: 100000
+  source: https://www.opc.gouv.qc.ca/
+  fix_hint: Add renewal reminders and a self-serve cancellation flow.

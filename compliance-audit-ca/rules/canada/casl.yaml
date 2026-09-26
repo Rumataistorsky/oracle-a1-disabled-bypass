@@ -1,0 +1,74 @@
+# Canada's Anti-Spam Legislation (CASL), S.C. 2010, c. 23. Enforced by the CRTC.
+- id: CASL-01
+  law: CASL
+  jurisdiction: federal
+  title: Express consent before sending commercial electronic messages
+  requirement: >
+    A commercial electronic message (CEM) may only be sent to an electronic address with the
+    recipient's express or implied consent (s. 6). Express consent must be an opt-in: pre-checked
+    boxes, bundled consent hidden in terms, or consent inferred from silence are not valid
+    (CRTC Compliance and Enforcement Information Bulletin 2012-548).
+  check: >
+    Any newsletter, promotions, "sign up for updates" or account form: is consent an unchecked,
+    separate opt-in? Is the purpose of the messages stated? Is consent bundled with terms of
+    service or purchase?
+  applies_when: ["email_signup_form"]
+  auto_fail_when: "email_signup_form and prechecked_checkboxes > 0"
+  severity: high
+  penalty: "Administrative monetary penalty up to $10,000,000 per violation for organizations, $1,000,000 for individuals."
+  penalty_max_cad: 10000000
+  source: https://laws-lois.justice.gc.ca/eng/acts/E-1.6/
+  fix_hint: >
+    Replace pre-checked boxes with an unchecked checkbox labelled with the sender's name and what
+    the person will receive; keep a record of the consent (date, source, wording).
+- id: CASL-02
+  law: CASL
+  jurisdiction: federal
+  title: Sender identification in consent requests and messages
+  requirement: >
+    A request for consent and every CEM must identify the person sending (and on whose behalf it is
+    sent), and provide a mailing address plus a phone number, email address or web address
+    (s. 6(2), Electronic Commerce Protection Regulations s. 2-4).
+  check: >
+    Does the site (footer, contact page, sign-up form) show the legal business name and a valid
+    mailing address? Is it clear who will be sending the messages?
+  applies_when: ["email_signup_form"]
+  auto_fail_when: "email_signup_form and not sender_identified"
+  severity: medium
+  penalty: "Administrative monetary penalty up to $10,000,000 per violation for organizations."
+  penalty_max_cad: 10000000
+  source: https://crtc.gc.ca/eng/internet/anti.htm
+  fix_hint: Add the legal entity name and a Canadian mailing address next to the sign-up form and in the footer.
+- id: CASL-03
+  law: CASL
+  jurisdiction: federal
+  title: Unsubscribe mechanism disclosed and honoured within 10 business days
+  requirement: >
+    Every CEM must contain an unsubscribe mechanism that works for at least 60 days and is given
+    effect without delay and no later than 10 business days (s. 6(2)(c), s. 11).
+  check: >
+    Does the sign-up form or privacy policy tell the person they can unsubscribe at any time?
+    Any statement that contradicts this (e.g. "you cannot opt out of promotional emails")?
+  applies_when: ["email_signup_form"]
+  severity: medium
+  penalty: "Administrative monetary penalty up to $10,000,000 per violation for organizations."
+  penalty_max_cad: 10000000
+  source: https://laws-lois.justice.gc.ca/eng/acts/E-1.6/page-2.html#h-208137
+  fix_hint: State next to the sign-up form that the person can unsubscribe at any time via a link in every email.
+- id: CASL-04
+  law: CASL
+  jurisdiction: federal
+  title: Consent for installing tracking software and cookies used to identify users
+  requirement: >
+    Installing a computer program on another person's device in the course of commercial activity
+    requires express consent (s. 8). Cookies are deemed consented to only where it is reasonable to
+    believe the person consents (s. 10(8)); aggressive fingerprinting or hidden tracking scripts are not.
+  check: >
+    Are third-party tracking scripts (analytics, ad pixels, session recording) disclosed anywhere?
+    Is there a cookie notice that explains tracking and how to refuse it?
+  applies_when: ["uses_trackers"]
+  severity: low
+  penalty: "Administrative monetary penalty up to $10,000,000 per violation for organizations."
+  penalty_max_cad: 10000000
+  source: https://crtc.gc.ca/eng/internet/install.htm
+  fix_hint: Disclose analytics and advertising trackers in the privacy/cookie policy and offer a way to refuse non-essential ones.

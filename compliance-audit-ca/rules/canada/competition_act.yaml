@@ -1,0 +1,81 @@
+# Competition Act, R.S.C. 1985, c. C-34 - deceptive marketing practices (Part VII.1). Enforced by the Competition Bureau.
+- id: CA-01
+  law: Competition Act
+  jurisdiction: federal
+  title: Drip pricing - price shown must be attainable
+  requirement: >
+    s. 74.01(1.1) (2022): representing a price that is not attainable because of fixed obligatory
+    charges or fees is a false or misleading representation, unless the charge is a government-imposed
+    tax. Mandatory service, booking, convenience or processing fees must be included in the
+    advertised price. Example: Cineplex was ordered to pay $38.9 million (2024) over an online
+    booking fee.
+  check: >
+    Are there phrases like "plus fees", "fees apply at checkout", "service fee", "booking fee"? Are
+    mandatory charges added late in the checkout? Are the only exclusions GST/HST/PST?
+  applies_when: ["ecommerce"]
+  auto_fail_when: "ecommerce and has_drip_pricing"
+  severity: high
+  penalty: "Administrative monetary penalty up to the greater of $10,000,000 ($15,000,000 for subsequent orders) or 3% of annual worldwide gross revenue; restitution orders."
+  penalty_max_cad: 10000000
+  source: https://laws-lois.justice.gc.ca/eng/acts/C-34/page-13.html#h-89843
+  fix_hint: Include all mandatory fees in the first price shown; show only taxes as an addition.
+- id: CA-02
+  law: Competition Act
+  jurisdiction: federal
+  title: Ordinary price and sale claims must meet the volume or time test
+  requirement: >
+    s. 74.01(2)-(3): a "was/now", "regular price" or "save X%" claim is misleading unless a
+    substantial volume was sold at the higher price in a reasonable period (volume test) or the
+    higher price was offered in good faith for a substantial period (time test).
+  check: Are there strike-through prices, "compare at", "MSRP" or percentage-off claims? Is there any indication the higher price was real (dated sales, reference)?
+  applies_when: ["sale_price_claims > 0"]
+  severity: medium
+  penalty: "Administrative monetary penalty up to the greater of $10,000,000 or 3% of annual worldwide gross revenue."
+  penalty_max_cad: 10000000
+  source: https://competition-bureau.canada.ca/en/how-we-foster-competition/education-and-outreach/ordinary-price-claims
+  fix_hint: Keep records proving the reference price; remove perpetual "sale" labels.
+- id: CA-03
+  law: Competition Act
+  jurisdiction: federal
+  title: Environmental claims must be substantiated (greenwashing, 2024 amendments)
+  requirement: >
+    s. 74.01(1)(b.1)-(b.2) (June 2024): claims about a product's environmental benefits must be
+    based on adequate and proper testing; claims about a business's or activity's environmental
+    benefits must be substantiated in accordance with an internationally recognized methodology.
+    Since June 2025 private parties may seek leave to bring proceedings.
+  check: Are there "eco-friendly", "sustainable", "carbon neutral", "recyclable" or similar claims? Is any test, certification or methodology cited?
+  applies_when: ["green_claims > 0"]
+  severity: medium
+  penalty: "Administrative monetary penalty up to the greater of $10,000,000 or 3% of annual worldwide gross revenue."
+  penalty_max_cad: 10000000
+  source: https://competition-bureau.canada.ca/en/how-we-foster-competition/education-and-outreach/environmental-claims-and-competition-act
+  fix_hint: Cite the certification or methodology next to each claim or remove the claim.
+- id: CA-04
+  law: Competition Act
+  jurisdiction: federal
+  title: Testimonials, reviews and endorsements are genuine and disclosed
+  requirement: >
+    s. 74.02 (testimonials not approved by the person) and s. 74.01(1)(a) (misleading
+    representations): fake, incentivised or edited reviews and undisclosed paid endorsements are
+    deceptive. Bureau guidance: "sponsored" or "paid" must be disclosed clearly.
+  check: Are ratings/reviews shown? Is their source stated? Are incentives or filtering of negative reviews disclosed?
+  applies_when: ["reviews_or_testimonials"]
+  severity: low
+  penalty: "Administrative monetary penalty up to the greater of $10,000,000 or 3% of annual worldwide gross revenue."
+  penalty_max_cad: 10000000
+  source: https://competition-bureau.canada.ca/en/deceptive-marketing-practices
+  fix_hint: State where reviews come from and how they are moderated; label paid endorsements.
+- id: CA-05
+  law: Competition Act
+  jurisdiction: federal
+  title: Free and trial offers state all conditions up front
+  requirement: >
+    s. 74.01(1)(a): "free" offers with hidden conditions (shipping, automatic paid conversion, minimum
+    purchase) are misleading; the general impression test applies (s. 74.03(5)).
+  check: Is anything advertised as free? Are conditions (shipping, card required, converts to paid) stated next to the claim, not only in terms?
+  applies_when: ["free_claims > 0"]
+  severity: low
+  penalty: "Administrative monetary penalty up to the greater of $10,000,000 or 3% of annual worldwide gross revenue."
+  penalty_max_cad: 10000000
+  source: https://laws-lois.justice.gc.ca/eng/acts/C-34/page-13.html
+  fix_hint: Put material conditions immediately beside the "free" claim.

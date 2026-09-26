@@ -1,0 +1,107 @@
+# Quebec - Act respecting the protection of personal information in the private sector (CQLR c. P-39.1),
+# as amended by Law 25 (Bill 64). Enforced by the Commission d'accès à l'information (CAI).
+# Applies to any enterprise collecting personal information from Quebec residents, wherever it is based.
+- id: QC25-01
+  law: Quebec Law 25
+  jurisdiction: "QC"
+  title: Tracking and profiling technologies off by default with prior notice
+  requirement: >
+    s. 8.1: an enterprise that collects personal information through technology with functions that
+    allow a person to be identified, located or profiled must first inform the person of the use of
+    the technology and of the means available to activate those functions. In practice non-essential
+    cookies and analytics/advertising trackers must be opt-in for Quebec users.
+  check: >
+    Are analytics or advertising trackers loaded before any consent? Does the cookie banner offer a
+    real refuse option, or only "Accept"? Are tracking functions described as off by default?
+  applies_when: ["uses_trackers"]
+  auto_fail_when: "uses_trackers and not has_cookie_banner"
+  severity: high
+  penalty: "Administrative monetary penalty up to $10,000,000 or 2% of worldwide turnover; penal fines up to $25,000,000 or 4% of worldwide turnover."
+  penalty_max_cad: 25000000
+  source: https://www.legisquebec.gouv.qc.ca/en/document/cs/P-39.1
+  fix_hint: Load analytics/ad scripts only after an explicit opt-in; add a "Refuse" button of equal prominence.
+- id: QC25-02
+  law: Quebec Law 25
+  jurisdiction: "QC"
+  title: Person in charge of the protection of personal information published on the website
+  requirement: >
+    s. 3.1: the person with the highest authority is responsible unless delegated in writing; the
+    title and contact information of the person in charge must be published on the enterprise's
+    website.
+  check: >
+    Is a "person in charge of the protection of personal information" (or privacy officer) named
+    with contact details on the site?
+  applies_when: ["collects_personal_info"]
+  auto_fail_when: "collects_personal_info and not privacy_officer_named"
+  severity: high
+  penalty: "Administrative monetary penalty up to $10,000,000 or 2% of worldwide turnover."
+  penalty_max_cad: 10000000
+  source: https://www.legisquebec.gouv.qc.ca/en/document/cs/P-39.1
+  fix_hint: Publish the title and email of the person in charge in the privacy policy and footer.
+- id: QC25-03
+  law: Quebec Law 25
+  jurisdiction: "QC"
+  title: Confidentiality policy published in clear and simple language
+  requirement: >
+    s. 8.2: an enterprise that collects personal information through technological means must
+    publish a confidentiality policy on its website, drafted in clear and simple language, and
+    inform users of any amendment.
+  check: >
+    Is a privacy/confidentiality policy available in plain language? Is it available in French for
+    Quebec users? Is there a "last updated" date?
+  applies_when: ["collects_personal_info"]
+  auto_fail_when: "collects_personal_info and not has_privacy_page"
+  severity: high
+  penalty: "Administrative monetary penalty up to $10,000,000 or 2% of worldwide turnover."
+  penalty_max_cad: 10000000
+  source: https://www.legisquebec.gouv.qc.ca/en/document/cs/P-39.1
+  fix_hint: Publish a plain-language policy with a revision date; provide a French version.
+- id: QC25-04
+  law: Quebec Law 25
+  jurisdiction: "QC"
+  title: Consent requested separately, for specific purposes, in clear language
+  requirement: >
+    s. 14: consent must be clear, free and informed and given for specific purposes; it must be
+    requested separately from any other information provided to the person. Consent for sensitive
+    information must be express.
+  check: >
+    Is consent to marketing or data sharing bundled into terms acceptance or a purchase? Are
+    purposes stated at the point of collection?
+  applies_when: ["collects_personal_info"]
+  severity: medium
+  penalty: "Administrative monetary penalty up to $10,000,000 or 2% of worldwide turnover."
+  penalty_max_cad: 10000000
+  source: https://www.legisquebec.gouv.qc.ca/en/document/cs/P-39.1
+  fix_hint: Separate consent checkboxes per purpose; never pre-check; state each purpose in one sentence.
+- id: QC25-05
+  law: Quebec Law 25
+  jurisdiction: "QC"
+  title: Information on transfers of personal information outside Quebec
+  requirement: >
+    s. 17: before communicating personal information outside Quebec, a privacy impact assessment is
+    required; s. 8 requires informing the person that their information may be communicated outside
+    Quebec.
+  check: >
+    Does the privacy policy state that personal information may be stored or processed outside
+    Quebec (other provinces, United States) and name the categories of recipients?
+  applies_when: ["collects_personal_info"]
+  severity: medium
+  penalty: "Administrative monetary penalty up to $10,000,000 or 2% of worldwide turnover."
+  penalty_max_cad: 10000000
+  source: https://www.legisquebec.gouv.qc.ca/en/document/cs/P-39.1
+  fix_hint: Add a "Transfers outside Quebec" section listing recipients and jurisdictions.
+- id: QC25-06
+  law: Quebec Law 25
+  jurisdiction: "QC"
+  title: Individual rights disclosed (access, rectification, de-indexing, portability, withdrawal)
+  requirement: >
+    ss. 27-28.1: individuals have rights of access, rectification, cessation of dissemination
+    (de-indexing), and, since September 2024, portability of computerized personal information in a
+    structured, commonly used format. The policy must explain how to exercise them.
+  check: Does the policy list these rights and give a way to exercise them, with the 30-day response deadline?
+  applies_when: ["collects_personal_info"]
+  severity: medium
+  penalty: "Administrative monetary penalty up to $10,000,000 or 2% of worldwide turnover."
+  penalty_max_cad: 10000000
+  source: https://www.legisquebec.gouv.qc.ca/en/document/cs/P-39.1
+  fix_hint: Add a rights section including portability and the CAI complaint route.

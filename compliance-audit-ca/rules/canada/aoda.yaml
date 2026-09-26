@@ -1,0 +1,71 @@
+# Accessibility for Ontarians with Disabilities Act, 2005 (AODA) - Integrated Accessibility Standards, O. Reg. 191/11.
+# s. 14: public websites and web content of organizations with 50+ employees (and all public sector) must meet WCAG 2.0 Level AA.
+# Federal counterpart: Accessible Canada Act (federally regulated entities). Other provinces: Manitoba, BC, Nova Scotia acts.
+- id: AODA-01
+  law: AODA / WCAG 2.0 AA
+  jurisdiction: "ON"
+  title: Text alternatives for images (WCAG 1.1.1)
+  requirement: >
+    All non-text content must have a text alternative that serves the equivalent purpose; decorative
+    images must be marked as such so screen readers skip them.
+  check: Do images carry meaningful alt attributes (not file names)? Are decorative images marked with empty alt or role=presentation?
+  auto_fail_when: "images_missing_alt > 0"
+  severity: medium
+  penalty: "Director's orders and administrative penalties; on conviction up to $100,000 per day for corporations, $50,000 per day for individuals (AODA s. 37)."
+  penalty_max_cad: 100000
+  source: https://www.ontario.ca/laws/regulation/110191#BK13
+  fix_hint: Add descriptive alt text to informative images and alt="" to decorative ones.
+- id: AODA-02
+  law: AODA / WCAG 2.0 AA
+  jurisdiction: "ON"
+  title: Page language declared (WCAG 3.1.1)
+  requirement: The default human language of each page must be programmatically determinable (html lang attribute).
+  check: Does every page's html element carry a lang attribute matching its content (en, fr, en-CA, fr-CA)?
+  auto_fail_when: "html_lang_missing_pages > 0"
+  severity: low
+  penalty: "Director's orders and administrative penalties; on conviction up to $100,000 per day for corporations."
+  penalty_max_cad: 100000
+  source: https://www.w3.org/TR/WCAG20/#meaning-doc-lang-id
+  fix_hint: Set <html lang="en"> (or fr) on every page; use lang on inline foreign-language passages.
+- id: AODA-03
+  law: AODA / WCAG 2.0 AA
+  jurisdiction: "ON"
+  title: Form inputs have programmatic labels (WCAG 1.3.1, 3.3.2)
+  requirement: Every form control must have a visible label or accessible name so assistive technology can announce its purpose.
+  check: Are inputs associated with a label element, aria-label or aria-labelledby? Are placeholders used as the only label?
+  auto_fail_when: "inputs_without_label > 0"
+  severity: medium
+  penalty: "Director's orders and administrative penalties; on conviction up to $100,000 per day for corporations."
+  penalty_max_cad: 100000
+  source: https://www.w3.org/TR/WCAG20/#minimize-error-cues
+  fix_hint: Add <label for> to every input; keep placeholders as hints only.
+- id: AODA-04
+  law: AODA
+  jurisdiction: "ON"
+  title: Accessibility statement and feedback process
+  requirement: >
+    O. Reg. 191/11 s. 11: organizations must have a process for receiving and responding to feedback
+    about accessibility and make information about it publicly available; s. 3-4 require accessibility
+    policies (and a multi-year plan for 50+ employees) to be posted on the website.
+  check: Is there an accessibility page or statement with a way to request accessible formats or give feedback?
+  auto_fail_when: "not has_accessibility_page"
+  severity: low
+  penalty: "Director's orders and administrative penalties."
+  penalty_max_cad: 100000
+  source: https://www.ontario.ca/laws/regulation/110191#BK10
+  fix_hint: Publish an "Accessibility" page with the policy, feedback contact and commitment to WCAG 2.0 AA.
+- id: AODA-05
+  law: AODA / WCAG 2.0 AA
+  jurisdiction: "ON"
+  title: Structure and navigation (headings, skip link, keyboard access)
+  requirement: >
+    WCAG 2.4.1 (bypass blocks), 1.3.1 (info and relationships), 2.1.1 (keyboard): content must be
+    navigable with a keyboard and organised with a logical heading hierarchy.
+  check: >
+    Is there a single h1 and a sensible heading order? Is there a skip-to-content link? Do interactive
+    elements rely on div/span with click handlers instead of buttons and links?
+  severity: low
+  penalty: "Director's orders and administrative penalties."
+  penalty_max_cad: 100000
+  source: https://www.w3.org/TR/WCAG20/#navigation-mechanisms-skip
+  fix_hint: Add a skip link, fix heading order, and use native button/a elements.

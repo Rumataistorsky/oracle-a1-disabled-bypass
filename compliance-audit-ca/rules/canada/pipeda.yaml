@@ -1,0 +1,92 @@
+# Personal Information Protection and Electronic Documents Act (PIPEDA), S.C. 2000, c. 5, Schedule 1 principles.
+# Applies to private-sector organizations collecting personal information in the course of commercial activity,
+# except in provinces with substantially similar laws (QC, BC, AB) for intra-provincial activity.
+- id: PIPEDA-01
+  law: PIPEDA
+  jurisdiction: federal
+  title: Privacy policy is readily available and explains what is collected and why
+  requirement: >
+    Principle 4.8 (Openness): an organization must make readily available specific information
+    about its policies and practices, including the purposes for collecting personal information,
+    what is collected, and how to reach the person accountable. The OPC's Guidelines for obtaining
+    meaningful consent (2018) require key elements to be up front, in plain language.
+  check: >
+    Is there a privacy policy linked from every page? Does it say what personal information is
+    collected (forms, accounts, cookies), the purposes, and who it is shared with? Is it written for
+    consumers, not lawyers?
+  applies_when: ["collects_personal_info"]
+  auto_fail_when: "collects_personal_info and not has_privacy_page"
+  severity: high
+  penalty: "OPC investigation and findings; Federal Court orders and damages. Fines up to $100,000 per offence for breach-related contraventions (s. 28)."
+  penalty_max_cad: 100000
+  source: https://laws-lois.justice.gc.ca/eng/acts/P-8.6/page-5.html#h-417039
+  fix_hint: Publish a plain-language privacy policy linked in the footer; list data collected, purposes, third parties, retention, and contact.
+- id: PIPEDA-02
+  law: PIPEDA
+  jurisdiction: federal
+  title: Purposes identified at or before the time of collection
+  requirement: >
+    Principle 4.2 and 4.3: purposes must be identified at or before collection and consent obtained
+    for those purposes. Consent must be meaningful - the person must understand what they agree to.
+    Using personal information for a new purpose requires new consent.
+  check: >
+    Next to forms (contact, checkout, account), is there a short statement of why the information is
+    needed and a link to the policy? Does the policy describe purposes concretely rather than
+    "any business purpose"?
+  applies_when: ["collects_personal_info"]
+  severity: medium
+  penalty: "OPC findings, Federal Court orders and damages."
+  penalty_max_cad: 100000
+  source: https://www.priv.gc.ca/en/privacy-topics/collecting-personal-information/consent/gl_omc_201805/
+  fix_hint: Add a one-line purpose statement under each form and describe concrete purposes in the policy.
+- id: PIPEDA-03
+  law: PIPEDA
+  jurisdiction: federal
+  title: Accountable individual (privacy officer) designated and reachable
+  requirement: >
+    Principle 4.1: an organization must designate an individual accountable for compliance and make
+    that person's identity or title known on request; Principle 4.8.2 lists their contact details
+    among the information that must be readily available.
+  check: >
+    Does the privacy policy name a privacy officer (or title) with an email or mailing address for
+    privacy questions and access requests?
+  applies_when: ["collects_personal_info"]
+  auto_fail_when: "collects_personal_info and has_privacy_page and not privacy_officer_named"
+  severity: medium
+  penalty: "OPC findings, Federal Court orders and damages."
+  penalty_max_cad: 100000
+  source: https://laws-lois.justice.gc.ca/eng/acts/P-8.6/page-5.html#h-417039
+  fix_hint: Add a "Privacy Officer" section with a role title and a dedicated contact email.
+- id: PIPEDA-04
+  law: PIPEDA
+  jurisdiction: federal
+  title: Access, correction and complaint process described
+  requirement: >
+    Principles 4.9 and 4.10: individuals must be told they can access and correct their personal
+    information and how to challenge compliance. Access requests must be answered within 30 days.
+  check: >
+    Does the policy explain how a person can request their data, correct it, withdraw consent, and
+    complain (including to the Office of the Privacy Commissioner of Canada)?
+  applies_when: ["collects_personal_info"]
+  severity: medium
+  penalty: "OPC findings, Federal Court orders and damages."
+  penalty_max_cad: 100000
+  source: https://www.priv.gc.ca/en/privacy-topics/privacy-laws-in-canada/the-personal-information-protection-and-electronic-documents-act-pipeda/p_principle/
+  fix_hint: Add "Your rights" and "Complaints" sections with the steps, timelines and the OPC's contact.
+- id: PIPEDA-05
+  law: PIPEDA
+  jurisdiction: federal
+  title: Transfers to service providers and outside Canada disclosed
+  requirement: >
+    OPC Guidelines for processing personal data across borders (2009): organizations must be
+    transparent that personal information may be processed by service providers in another country
+    and may be accessible to that country's authorities.
+  check: >
+    Does the policy mention third-party processors (hosting, payments, email, analytics) and that data
+    may be stored or processed outside Canada (e.g. in the United States)?
+  applies_when: ["collects_personal_info"]
+  severity: low
+  penalty: "OPC findings, Federal Court orders and damages."
+  penalty_max_cad: 100000
+  source: https://www.priv.gc.ca/en/privacy-topics/airports-and-borders/gl_dab_090127/
+  fix_hint: List categories of service providers and state where data is stored, with a note on foreign-law access.

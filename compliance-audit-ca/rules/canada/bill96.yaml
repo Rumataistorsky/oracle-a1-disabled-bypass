@@ -1,0 +1,50 @@
+# Quebec - Charter of the French Language (CQLR c. C-11), as amended by Bill 96 (2022). Enforced by the OQLF.
+- id: FR-01
+  law: Charter of the French Language (Bill 96)
+  jurisdiction: "QC"
+  title: Website and commercial content available in French, at least as prominent as other languages
+  requirement: >
+    s. 52: catalogues, brochures, commercial directories and any similar publication, including
+    websites, must be drawn up in French; a version in another language may be offered if French is
+    at least equally prominent. The OQLF applies this to businesses with an establishment in Quebec
+    and to businesses that market to Quebec consumers online.
+  check: >
+    Is a complete French version of the site available (not machine-translated fragments)? Is the
+    language toggle visible? Are product pages, checkout, and terms also in French?
+  applies_when: ["targets_quebec"]
+  auto_fail_when: "targets_quebec and not has_french_version"
+  severity: high
+  penalty: "Fines of $3,000 to $30,000 for legal persons per offence (doubled/tripled on repeat); OQLF may suspend or revoke permits and publish the offender's name."
+  penalty_max_cad: 90000
+  source: https://www.legisquebec.gouv.qc.ca/en/document/cs/C-11
+  fix_hint: Publish a full French version with a prominent FR/EN toggle; translate checkout, emails and terms.
+- id: FR-02
+  law: Charter of the French Language (Bill 96)
+  jurisdiction: "QC"
+  title: Contracts of adhesion and terms presented in French first
+  requirement: >
+    s. 55: contracts of adhesion (online terms, subscriptions) must be drawn up in French; the
+    parties may be bound by another language only after the French version has been provided.
+    Customer service must also be available in French (s. 5).
+  check: Are terms of service, subscription agreements and return policies available in French before checkout? Can a customer get support in French?
+  applies_when: ["targets_quebec"]
+  severity: medium
+  penalty: "Fines of $3,000 to $30,000 for legal persons per offence."
+  penalty_max_cad: 30000
+  source: https://www.legisquebec.gouv.qc.ca/en/document/cs/C-11
+  fix_hint: Provide French terms and policies; add a French support channel.
+- id: FR-03
+  law: Charter of the French Language (Bill 96)
+  jurisdiction: "QC"
+  title: Product labelling, packaging and trademarks (in force 1 June 2025)
+  requirement: >
+    s. 51 and the Regulation respecting the language of commerce and business as amended in 2024:
+    inscriptions on products and packaging must be in French; a non-French trademark may appear
+    only if registered, and generic or descriptive terms within it must also appear in French.
+  check: Do product images and descriptions show packaging with French inscriptions? Are descriptive terms in trademarks translated?
+  applies_when: ["targets_quebec", "ecommerce"]
+  severity: low
+  penalty: "Fines of $3,000 to $30,000 for legal persons per offence."
+  penalty_max_cad: 30000
+  source: https://www.oqlf.gouv.qc.ca/
+  fix_hint: Review product labels and marketplace listings for French inscriptions.
