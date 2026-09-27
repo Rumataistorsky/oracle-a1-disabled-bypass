@@ -268,7 +268,7 @@ Uptime Kuma (LXC 901) — **додати вручну**, її API працює �
 | 3 | `SUPPLIER-RETAIL-SOUTH` | 45.9283033, -66.6624333 | 350 | Home Depot + Costco + Princess Auto |
 | 4 | `SUPPLIER-KENT` | 45.93838, -66.66668 | 150 | Kent Building Supplies |
 | 5 | `SUPPLIER-TWO-NATIONS` | 45.9877725, -66.627988 | 260 | Two Nations Crossing, Canadian Tire |
-| 6 | `SUPPLIER-SUPERSTORE-SMYTHE` | 45.9584767, -66.657964 | **250** | Atlantic Superstore Smythe St |
+| 6 | `SUPPLIER-SUPERSTORE-SMYTHE` | 45.9584767, -66.657964 | 150 | Atlantic Superstore Smythe St |
 | 7 | `SUPPLIER-SUPERSTORE-MAIN` | 45.9781423, -66.6575621 | 150 | Atlantic Superstore Main St |
 | 8 | `CLIENT-DUNCAN-CROWTHER` | 45.9317769, -66.6583052 | 120 | робоче місце Duncan, прорахунки |
 | 9 | `CLIENT-DUNCAN-MARLBOROUGH` | 45.959936, -66.673496 | 120 | 67 Marlborough Dr, дім Duncan |
@@ -285,8 +285,9 @@ Uptime Kuma (LXC 901) — **додати вручну**, її API працює �
 | 20 | `SUPPLIER-SPRINGHILL` | 45.96117, -66.742632 | 300 | Springhill Infrastructure, 900 Springhill — щебінь, камінь |
 | 21 | `SERVICE-RECAR-AVONLEA` | 45.94505, -66.68941 | 120 | REcar, 14 Avonlea Ct — документи на авто, сервіс |
 | 22 | `GOV-SNB-BROOKSIDE` | 45.993911, -66.652371 | 150 | Service New Brunswick, Brookside Mall, 435 Brookside Dr — реєстрація авто |
-| 23 | `GAS-SUNSET-325` | 45.982474, -66.668236 | 120 | заправка, 325 Sunset Drive, Sunset Acres |
-| 24 | `SUPPLIER-MAIN-176` | 45.977926, -66.653101 | 130 | магазин, 176 Main Street — назву уточнити |
+| 23 | `GAS-SHELL-SUNSET` | 45.982474, -66.668236 | 120 | Shell, 325 Sunset Drive, Sunset Acres |
+| 24 | `SUPPLIER-EVERGREEN-MAIN` | 45.977926, -66.653101 | 130 | Evergreen Traders, 176 Main Street |
+| 25 | `SUPPLIER-EVERGREEN-SMYTHE` | 45.956943, -66.657183 | 120 | Evergreen Traders (кол. Digital World), 524 Smythe St |
 
 №19-22 додані 23.09.2026 з реальних стоянок того дня: координати —
 середнє по точках зі швидкістю <2 вузли (63, 26, 16 і 34 фікси відповідно),
@@ -297,11 +298,14 @@ Uptime Kuma (LXC 901) — **додати вручну**, її API працює �
 правильно: номери в NB видає SNB, а не муніципалітет. Геокодер дав
 «Reynolds Street», бо це найближча вулиця до парковки моллу. Перейменовано.
 
-№6 розширено зі 150 до **250 м**: 26.09 авто стояло за 181 м від центру,
-паркінг Superstore більший за радіус. Дублювати зону не стали.
+№23-25 додані 27.09 за відповідями водія. `GAS-` — ще один новий префікс:
+заправка це бізнес-поїздка, але ні постачальник, ні клієнт.
 
-№23-24 додані 27.09 з відповідей водія в боті. `GAS-` — ще один новий
-префікс: заправка це бізнес-поїздка, але ні постачальник, ні клієнт.
+Спершу зупинку за 181 м від центру Superstore Smythe вважали тим самим
+магазином і розширили радіус до 250 м. Водій уточнив: це **інший** магазин,
+Evergreen Traders на 524 Smythe. Радіус повернуто на 150, заведено окрему
+зону №25. Урок той самий, що з Service New Brunswick: близька відстань не
+робить два заклади одним.
 
 `SERVICE-`, `GOV-` і `GAS-` — нові префікси. Сервіс власного авто компанії і
 оформлення номерів це бізнес-поїздки, але не постачальник і не клієнт,
