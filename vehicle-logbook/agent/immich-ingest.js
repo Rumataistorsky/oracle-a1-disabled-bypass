@@ -137,10 +137,21 @@ const tagCache = new Map();
 async function tagAsset(assetId, tagName) {
   try {
     if (!tagCache.has(tagName)) {
-      const t = await immich('/api/tags', {
-        method: 'POST', body: JSON.stringify({ name: tagName }),
-      });
-      tagCache.set(tagName, t.id);
+      // POST /api/tags віддає 400, якщо тег уже є, і id не повертає.
+      // Тому спершу шукаємо серед наявних, створюємо лише коли справді нема.
+      let id = null;
+      try {
+        const all = await immich('/api/tags');
+        const hit = (all || []).find(t => t.value === tagName || t.name === tagName);
+        if (hit) id = hit.id;
+      } catch { /* список не критичний */ }
+      if (!id) {
+        const t = await immich('/api/tags', {
+          method: 'POST', body: JSON.stringify({ name: tagName }),
+        });
+        id = t.id;
+      }
+      tagCache.set(tagName, id);
     }
     await immich(`/api/tags/${tagCache.get(tagName)}/assets`, {
       method: 'PUT', body: JSON.stringify({ ids: [assetId] }),
@@ -201,7 +212,9 @@ async function classify(imagePath) {
 
 async function pushReceiptToInbox(localPath, assetId, takenAt) {
   const stamp = takenAt.replace(/[-:T]/g, '').slice(0, 14);
-  const name  = `immich_${stamp}_${assetId.slice(0, 8)}${path.extname(localPath) || '.jpg'}`;
+  // Дефіси, не підкреслення: receipt-bot виправляє рік за шаблоном
+  // Canon-сканера _YYMMDDHHMMSS_ , і підкреслення могли б туди влучити.
+  const name  = `immich-${stamp}-${assetId.slice(0, 8)}${path.extname(localPath) || '.jpg'}`;
   if (DRY_RUN) { console.log(`[dry-run] чек → ${SCAN_INBOX}/${name}`); return name; }
   if (!ssh.isConnected()) {
     await ssh.connect({ host: SSH_HOST, username: SSH_USER, privateKeyPath: SSH_KEY_PATH });
@@ -326,8 +339,9 @@ async function main() {
           tally[c.type]++;
         }
 
-        done.add(a.id);
-        saveState(done);
+        // Сухий прогін не має права позначати фото обробленим: інакше він
+        // отруює стан і наступний бойовий запуск мовчки все пропускає.
+        if (!DRY_RUN) { done.add(a.id); saveState(done); }
       } catch (e) {
         console.error(`[immich-ingest] ${a.id}: ${e.message}`);
         tally.failed++;   // не додаємо в done — спробуємо завтра
