@@ -101,7 +101,7 @@ Invoice Ninja видима й виправна, загублений чек — 
 
 | Що | Де |
 |---|---|
-| Immich | LXC 400, 192.168.2.9:2283, акаунт `fleet@rotes.ca` |
+| Immich | `immich.rotes.ca` → LXC 400, 192.168.2.9:2283, акаунт `fleet@rotes.ca` |
 | Пароль і API-ключ | Vaultwarden → «Immich — ROTES Fleet» |
 | `immich-ingest.js` | LXC 414, `/opt/agent/`, копія в `agent/` цього репо |
 | Таймер | `immich-ingest.timer`, щодня 03:30 ADT |
@@ -122,10 +122,10 @@ pct exec 414 -- journalctl -u immich-ingest -n 50 --no-pager
 
 ## Що лишилося зробити руками
 
-**Телефон.** Встановити застосунок Immich, увійти як `fleet@rotes.ca`
-(пароль у Vaultwarden), увімкнути Backup для теки камери. Сервер:
-`https://photo.roik.pro`. При першому вході Immich попросить змінити
-пароль — змінити й оновити запис у Vaultwarden.
+**Телефон.** Встановити застосунок Immich, вказати сервер
+**`https://immich.rotes.ca`**, увійти як `fleet@rotes.ca` (пароль у
+Vaultwarden), увімкнути Backup для теки камери. При першому вході Immich
+попросить змінити пароль — змінити й оновити запис у Vaultwarden.
 
 Доти конвеєр стоїть порожній і нічого не робить: це нормально, не помилка.
 
