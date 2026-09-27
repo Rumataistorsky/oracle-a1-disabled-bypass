@@ -87,15 +87,15 @@
               "row": {
                 "buttons": [
                   {
-                    "text": "Постачальник",
+                    "text": "Постачальник, є чек",
                     "additionalFields": {
                       "callback_data": "=c:{{ $json.trip_id }}:sup"
                     }
                   },
                   {
-                    "text": "Заправка",
+                    "text": "Постачальник, без чека",
                     "additionalFields": {
-                      "callback_data": "=c:{{ $json.trip_id }}:gas"
+                      "callback_data": "=c:{{ $json.trip_id }}:sun"
                     }
                   }
                 ]
@@ -105,9 +105,9 @@
               "row": {
                 "buttons": [
                   {
-                    "text": "Зустріч",
+                    "text": "Заправка",
                     "additionalFields": {
-                      "callback_data": "=c:{{ $json.trip_id }}:mtg"
+                      "callback_data": "=c:{{ $json.trip_id }}:gas"
                     }
                   },
                   {
@@ -123,11 +123,23 @@
               "row": {
                 "buttons": [
                   {
+                    "text": "Зустріч",
+                    "additionalFields": {
+                      "callback_data": "=c:{{ $json.trip_id }}:mtg"
+                    }
+                  },
+                  {
                     "text": "Інше по роботі",
                     "additionalFields": {
                       "callback_data": "=c:{{ $json.trip_id }}:oth"
                     }
-                  },
+                  }
+                ]
+              }
+            },
+            {
+              "row": {
+                "buttons": [
                   {
                     "text": "Особисте",
                     "additionalFields": {

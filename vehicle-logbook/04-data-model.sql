@@ -325,3 +325,28 @@ ON CONFLICT DO NOTHING;
 -- Водій: home_is_office = false. Його дім ↔ база = commute = особисте.
 -- Найчистіше — авто ночує на базі, тоді у водія особистих км немає взагалі.
 -- INSERT INTO drivers (label, role, home_is_office) VALUES ('<імʼя>', 'employee', false);
+
+-- ─── 27.09.2026: фото з робочого телефону через Immich ───────────────────────
+-- Чек, який водій пообіцяв («Постачальник, є чек»), і чек, якого не буде
+-- («без покупки, просто дивився»), у треку виглядають однаково. Прапорець
+-- відрізняє їх, і watchdog нагадує лише про перший.
+ALTER TABLE fleet.trips  ADD COLUMN IF NOT EXISTS receipt_expected boolean;
+
+-- Друге джерело фото, крім Telegram. immich_asset_id — ключ ідемпотентності:
+-- скрипт може падати й перезапускатися скільки завгодно, дубля не буде.
+ALTER TABLE fleet.photos ADD COLUMN IF NOT EXISTS immich_asset_id text;
+ALTER TABLE fleet.photos ADD COLUMN IF NOT EXISTS source text NOT NULL DEFAULT 'telegram';
+ALTER TABLE fleet.photos ALTER COLUMN telegram_file_id DROP NOT NULL;
+CREATE UNIQUE INDEX IF NOT EXISTS photos_immich_uk
+    ON fleet.photos (immich_asset_id) WHERE immich_asset_id IS NOT NULL;
+ALTER TABLE fleet.photos ADD CONSTRAINT photos_origin_ck
+    CHECK (telegram_file_id IS NOT NULL OR immich_asset_id IS NOT NULL) NOT VALID;
+
+-- Окрема роль для immich-ingest на LXC 414. Навмисно без DELETE: скрипт
+-- тільки додає. Видаляти рядки логбука автоматика не має права взагалі.
+-- CREATE ROLE fleet_ingest LOGIN PASSWORD '<Vaultwarden>';
+-- GRANT USAGE ON SCHEMA fleet TO fleet_ingest;
+-- GRANT SELECT ON fleet.trips, fleet.vehicles, fleet.drivers TO fleet_ingest;
+-- GRANT SELECT, INSERT, UPDATE ON fleet.photos, fleet.odometer_readings TO fleet_ingest;
+-- GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA fleet TO fleet_ingest;
+-- pg_hba.conf: hostssl rotes_construction fleet_ingest 192.168.2.24/32 scram-sha-256

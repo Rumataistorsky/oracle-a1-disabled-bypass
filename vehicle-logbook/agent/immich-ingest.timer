@@ -1,0 +1,10 @@
+[Unit]
+Description=Щоденний розбір учорашніх фото з робочого телефону
+
+[Timer]
+OnCalendar=*-*-* 03:30:00
+Persistent=true
+RandomizedDelaySec=300
+
+[Install]
+WantedBy=timers.target

@@ -1,0 +1,13 @@
+[Unit]
+Description=Immich ingest — фото з робочого телефону в логбук, чеки, одометр
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+WorkingDirectory=/opt/agent
+ExecStart=/usr/bin/node /opt/agent/immich-ingest.js
+User=root
+TimeoutStartSec=3600
+StandardOutput=journal
+StandardError=journal
