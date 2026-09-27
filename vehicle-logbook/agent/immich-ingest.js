@@ -50,6 +50,10 @@ const TZ           = 'America/Moncton';
 const LOOKBACK_DAYS  = Number(process.env.IMMICH_LOOKBACK_DAYS || 8);
 // Наскільки пізніше старту поїздки фото ще вважається зробленим у тій поїздці.
 const TRIP_TAIL_HOURS = 6;
+// Те саме фото могло раніше прилетіти через Telegram. Секунди розбіжності:
+// той самий тип знімка — широке вікно, різний тип — лише майже точний збіг.
+const DEDUP_SAME_KIND_SEC = 600;
+const DEDUP_ANY_KIND_SEC  = 180;
 
 const DRY_RUN = process.argv.includes('--dry-run');
 
@@ -240,6 +244,31 @@ async function findTripFor(takenAtIso) {
   return rows[0] || null;
 }
 
+// Знімок міг уже пройти шлях Telegram → fleet.photos → scan_inbox → Ninja.
+// Другий раз його заводити не можна: у ніндзі з'явиться дубль витрати, а в
+// книзі — дубль фото. Шукаємо рядок без immich_asset_id поруч за часом.
+async function findExistingPhoto(kind, takenAtIso) {
+  const { rows } = await pool.query(
+    `SELECT id, kind
+       FROM fleet.photos
+      WHERE immich_asset_id IS NULL
+        AND abs(extract(epoch FROM taken_at - $1::timestamptz))
+            <= CASE WHEN kind = $2 THEN $3::numeric ELSE $4::numeric END
+      ORDER BY (kind = $2) DESC,
+               abs(extract(epoch FROM taken_at - $1::timestamptz))
+      LIMIT 1`,
+    [takenAtIso, kind, DEDUP_SAME_KIND_SEC, DEDUP_ANY_KIND_SEC]
+  );
+  return rows[0] || null;
+}
+
+async function linkExistingPhoto(photoId, assetId) {
+  await pool.query(
+    'UPDATE fleet.photos SET immich_asset_id = $1 WHERE id = $2 AND immich_asset_id IS NULL',
+    [assetId, photoId]
+  );
+}
+
 async function savePhoto({ assetId, kind, takenAt, lat, lon, note, tripId }) {
   if (DRY_RUN) { console.log(`[dry-run] ${kind} → fleet.photos (поїздка ${tripId || '—'})`); return; }
   await pool.query(
@@ -289,7 +318,7 @@ async function main() {
   fs.mkdirSync(TMP_DIR, { recursive: true });
 
   const done = loadState();
-  const tally = { receipt: 0, odometer: 0, site: 0, address: 0, other: 0, failed: 0, skipped: 0 };
+  const tally = { receipt: 0, odometer: 0, site: 0, address: 0, other: 0, duplicate: 0, failed: 0, skipped: 0 };
   const lines = [];
 
   // Від найдавнішого дня до вчорашнього. Сьогодні НЕ чіпаємо: бекап ще йде.
@@ -315,6 +344,21 @@ async function main() {
         const c = await classify(local);
         const lat = (a.exifInfo && a.exifInfo.latitude) ?? null;
         const lon = (a.exifInfo && a.exifInfo.longitude) ?? null;
+
+        const kindOf = c.type === 'receipt'  ? 'receipt'
+                     : c.type === 'odometer' ? 'odometer'
+                     : c.type === 'site'     ? 'site' : 'other';
+        const dup = await findExistingPhoto(kindOf, takenAt);
+        if (dup) {
+          console.log(`[immich-ingest] дубль Telegram → fleet.photos #${dup.id} (${dup.kind}), пропускаю`);
+          if (!DRY_RUN) {
+            await linkExistingPhoto(dup.id, a.id);
+            await tagAsset(a.id, 'logbook/дубль');
+            done.add(a.id); saveState(done);
+          }
+          tally.duplicate++;
+          continue;
+        }
 
         if (c.type === 'receipt') {
           const name = await pushReceiptToInbox(local, a.id, takenAt);
@@ -361,6 +405,7 @@ async function main() {
       tally.site     ? `🏗 обʼєкти: ${tally.site}` : '',
       tally.address  ? `🏠 адреси: ${tally.address}` : '',
       tally.other    ? `📷 інше: ${tally.other}` : '',
+      tally.duplicate ? `♻️ дублів із Telegram: ${tally.duplicate}` : '',
     ].filter(Boolean).join('\n');
     await tg([head, body, lines.slice(0, 15).join('\n')].filter(Boolean).join('\n'));
   }
