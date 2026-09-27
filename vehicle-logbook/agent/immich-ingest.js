@@ -190,9 +190,14 @@ async function classify(imagePath) {
     .jpeg({ quality: 85 })
     .toBuffer();
 
+  // Ollama на ROG ділиться з receipt-bot: коли той розбирає пачку сканів,
+  // одне фото чекає своєї черги хвилинами. Без ліміту нічний прохід міг би
+  // висіти до ранку й не розібрати нічого. 10 хв — із запасом, а зрив
+  // означає лише «спробуємо завтра»: фото не потрапляє в оброблені.
   const resp = await fetch(`${ROG_URL}/api/chat`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
+    signal: AbortSignal.timeout(Number(process.env.ROG_TIMEOUT_MS || 600000)),
     body: JSON.stringify({
       model: ROG_MODEL,
       stream: false,
@@ -286,7 +291,7 @@ async function saveOdometer({ assetId, km, takenAt }) {
   if (DRY_RUN) { console.log(`[dry-run] одометр ${km} км`); return true; }
   const { rowCount } = await pool.query(
     `INSERT INTO fleet.odometer_readings (vehicle_id, read_on, odometer_km, reason, photo_url, read_at)
-     SELECT 1, ($1::timestamptz AT TIME ZONE 'America/Moncton')::date, $2, 'photo', $3, $1::timestamptz
+     SELECT 1, ($1::timestamptz AT TIME ZONE 'America/Moncton')::date, $2, 'spot_check', $3, $1::timestamptz
       WHERE NOT EXISTS (
         SELECT 1 FROM fleet.odometer_readings
          WHERE read_at = $1::timestamptz OR odometer_km = $2
