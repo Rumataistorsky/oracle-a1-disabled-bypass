@@ -87,15 +87,33 @@
               "row": {
                 "buttons": [
                   {
+                    "text": "Постачальник",
+                    "additionalFields": {
+                      "callback_data": "=c:{{ $json.trip_id }}:sup"
+                    }
+                  },
+                  {
+                    "text": "Заправка",
+                    "additionalFields": {
+                      "callback_data": "=c:{{ $json.trip_id }}:gas"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "row": {
+                "buttons": [
+                  {
                     "text": "Зустріч",
                     "additionalFields": {
                       "callback_data": "=c:{{ $json.trip_id }}:mtg"
                     }
                   },
                   {
-                    "text": "Постачальник",
+                    "text": "Офіс / воркшоп",
                     "additionalFields": {
-                      "callback_data": "=c:{{ $json.trip_id }}:sup"
+                      "callback_data": "=c:{{ $json.trip_id }}:ofc"
                     }
                   }
                 ]
